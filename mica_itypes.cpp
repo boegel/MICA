@@ -103,7 +103,7 @@ VOID instrument_itypes(INS ins, VOID* v){
 	char opcode[50];
 	strcpy(cat,CATEGORY_StringShort(INS_Category(ins)).c_str());
 	strcpy(opcode,INS_Mnemonic(ins).c_str());
-	BOOL categorized;
+	BOOL categorized = false;
 
 
 	// instructions which read from memory

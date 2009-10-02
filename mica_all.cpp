@@ -158,7 +158,7 @@ VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 
 	UINT32 i, maxNumRegsProd, maxNumRegsCons, regReadCnt, regWriteCnt, opCnt, regOpCnt;
 	REG reg;
-	BOOL categorized;
+	BOOL categorized = false;
 	char cat[50];
 	char opcode[50];
 

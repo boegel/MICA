@@ -1,3 +1,11 @@
+May 20th 2008
+--------------
+
+MICA v0.21
+
+- removed -static from makefile, to avoid issues when linking MICA
+  (thanks to J. K. Rai and Ahmed S. Al-Zawawi for reporting this)
+
 Dec. 3rd 2007
 --------------
 
@@ -6,7 +14,7 @@ MICA v0.2:
 - various bug fixes, including:
  	* reg: include non-full-width registers
 	* ilp: not all registers were included in analysis (stopped after first non-valid register)
-	* stride: fixed faulty use of readIndexStride in readMem (and analogous for writeMem)
+	* stride: fixed faulty use of readIndex/writeIndex in readMem/writeMem
 	* reset interval_ins_count for all characteristics
 - added features:
 	* taking size of memory read/write into account
