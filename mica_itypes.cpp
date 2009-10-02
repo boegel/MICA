@@ -197,7 +197,7 @@ VOID instrument_itypes(INS ins, VOID* v){
 								}   
 								else{
 									// [!] NOP instructions
-									if(strcmp(cat,"NOP") == 0){
+									if(strcmp(cat,"WIDENOP") == 0 || strcmp(cat,"NOP") == 0){
 										if(categorized){
 											fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
 											exit(1);

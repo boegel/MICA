@@ -1,3 +1,16 @@
+September 22th 2009
+-------------------
+
+MICA v0.23
+
+Several people have reported small problems when MICA is being used with
+recent Pin kits. This small patch release should resolve these issues.
+
+- bug fixes:
+        * adjusted makefile and README according to Pin kit directory tree changes
+        * adjusted mica_itypes.cpp to recognize both NOP and WIDENOP categories
+
+
 June 13th 2008
 --------------
 

@@ -1,6 +1,6 @@
 MICA: Microarchitecture-Independent Characterization of Applications
 ====================================================================
-version 0.2
+version 0.23
 
 Kenneth Hoste & Lieven Eeckhout (Ghent University, Belgium)
 
@@ -20,10 +20,10 @@ Any problem reports or questions are welcome at kenneth.hoste@ugent.be .
 * Compilation
 --------------
 
-The easiest way to compile MICA is to add unzip/untar mica_v0-2.tar.gz to the ManualExamples
+The easiest way to compile MICA is to add unzip/untar mica_v0-X.tar.gz to the source/tools
 directory of the Pin kit you are using. If you wish to place mica in a different
-directory, you'll have to adjust the makefile included accordinly (i.e. the PIN_HOME variable).
-Running 'make' should produce the 'mica_v0-2' binary.
+directory, you'll have to adjust the makefile included accordinly.
+Running 'make' should produce the 'mica_v0-X' shared library.
 
 * Specifying type of analysis
 -----------------------------
