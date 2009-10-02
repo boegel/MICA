@@ -1,5 +1,6 @@
 MICA: Microarchitecture-Independent Characterization of Applications
 ====================================================================
+version 0.2
 
 Kenneth Hoste & Lieven Eeckhout (Ghent University, Belgium)
 
@@ -8,27 +9,84 @@ website: http://www.elis.ugent.be/~kehoste/mica
 A set of tutorial slides on MICA, which were presented at IISWC-2007 are
 available from the MICA website.
 
+* Disclaimer
+------------
+
+This software was only tested on Linux/x86. Anyone who wants to use it on a different 
+platform supported by Pin is free to do so, but should expect problems...
+
+Any problem reports or questions are welcome at kenneth.hoste@ugent.be .
+
 * Compilation
 --------------
 
-The easiest way to compile MICA is to add mica-vX.Y.cpp to the ManualExamples
-directory of the Pin kit you are using, and adjust the makefile accordingly
-(i.e. add mica-vX.Y to the TOOL_ROOTS variable).  That will allow you to just
-run 'make mica-vX.Y' to build the tool. Don't forget to replace the X and Y by
-the correct numbers, depending on the version of MICA you are using.
+The easiest way to compile MICA is to add unzip/untar mica_v0-2.tar.gz to the ManualExamples
+directory of the Pin kit you are using. If you wish to place mica in a different
+directory, you'll have to adjust the makefile included accordinly (i.e. the PIN_HOME variable).
+Running 'make' should produce the 'mica_v0-2' binary.
+
+* Specifying type of analysis
+-----------------------------
+
+MICA v0.2 supports various types of microarchitecture-independent characteristics.
+It also allows to measure the characteristics either for the entire execution, or
+per interval of N dynamic instructions.
+
+Specifying the parameters is done using the mica.conf configuration file. 
+A sample mica.conf file is provided with the distribution, and details
+on how to specify the parameters are found below.
+
+analysis_type: all | ilp | ilp_one | itypes | ppm | reg | stride | memfootprint | memreusedist
+interval_size: full | <size>
+[ilp_size: <size>]
+
+for example:
+
+analysis_type: itypes
+interval_size: 100000000
+
+specifies to measure the instruction mix per interval of 100,000,000 instructions.
+
+* Usage
+-------
+
+Using MICA v0.2 is very easy; just run:
+
+pin -t mica -- <program> [<parameter>]
+
+The type of analysis is specified in the mica.conf file, and some minor 
+logging is printed to mica.log (or mica.log.X).
 
 * Output files
 ---------------
 
 (I realize the output file names are a bit strange, but that's just the way I
-chose them... It's easy to adjust them, just look in the main() function ;-) ).
+chose them... It's easy to adjust them yourself! ).
 
-ilp: ilp_win_phases32-64-128-256_int_pin.out
-itypes: itypes_phases_int_pin.out
-ppm: ppm_phases_int_pin.out
-reg: reg_phases_int_pin.out
-stride: stride_phases_int_pin.out
-memfootprint: memfootprint_phases_pin.out
+ilp: 
+	full: ilp_full_int_pin.out
+	interval: ilp_phases_int_pin.out
+ilp_one: 
+	full: ilp<size>_full_int_pin.out
+	interval: ilp<size>_phases_int_pin.out
+itypes: 
+	full: itypes_full_int_pin.out
+	interval: itypes_phases_int_pin.out
+ppm: 
+	full: ppm_full_int_pin.out
+	interval: ppm_phases_int_pin.out
+reg: 
+	full: reg_full_int_pin.out
+	interval: reg_phases_int_pin.out
+stride: 
+	full: stride_full_int_pin.out
+	interval: stride_phases_int_pin.out
+memfootprint: 
+	full: memfootprint_full_int_pin.out
+	interval: memfootprint_phases_int_pin.out
+memreusedist: 
+	full: memreusedist_full_int_pin.out
+	interval: memreusedist_phases_int_pin.out
 
 * Full execution metrics
 -----------------------------------
@@ -40,7 +98,15 @@ window sizes (32, 64, 128, 256).
 This is measured by assuming perfect caches, perfect branch prediction, etc.  
 The only limitations are the instruction window size and the data dependences.
 
-Usage: pin -t mica full ilp -- <benchmark command line>
+analysis_type: ilp
+
+Besides measuring these four window sizes at once, MICA v0.2 also supports
+specifying a single window size, which is specified as follows (for 
+characterizing the full run using an instruction window of 32 entries):
+
+analysis_type: ilp_one
+interval_size: full
+ilp_size: 32
 
 +++ itypes +++
 
@@ -51,8 +117,8 @@ Because the x86 architecture isn't a load-store architecture, we count memory
 reads/writes seperately. The following categories are used (in order of
 output):
 
-- memory read (instruction which read from memory)
-- memory write (instruction which write to memory)
+- memory read (instructions which read from memory)
+- memory write (instructions which write to memory)
 - control flow
 - arithmetic
 - floating-point
@@ -62,7 +128,7 @@ output):
 - sse
 - other
 
-Usage: pin -t mica full itypes -- <benchmarks command line>
+analysis_type: itypes
 
 +++ ppm +++
 
@@ -74,7 +140,7 @@ configurations (global/local branch history, shared/seperate prediction
 table(s)), using 3 different history length (4,8,12 bits).  Additionally,
 average taken and transition count are also being measured.
 
-Usage: pin -t mica full ppm -- <benchmarks command line>
+analysis_type: ppm
 
 +++ reg +++
 
@@ -88,7 +154,7 @@ The register traffic is analyzed in different aspects:
 
 Dependency distances are chosen in powers of 2, i.e. 1, 2, 4, 8, 16, 32, 64
 
-Usage: pin -t mica full reg -- <benchmarks command line>
+analysis_type: reg
 
 +++ stride +++
 
@@ -105,16 +171,38 @@ Local means per static instruction accesses, global means over all
 instructions. The strides are characterized by powers of 8 (prob. <= 0, 8, 64,
 512, 4096, 32768, 262144)
 
-Usage: pin -t mica full stride -- <benchmarks command line>
+analysis_type: stride
 
 +++ memfootprint +++
 
 Instruction and data memory footprint.
 
 The size of the instruction and data memory footprint is characterized by
-counting the number of pages (4KB) and blocks (32 byte) touched.
+counting the number of blocks (64-byte) and pages (4KB) touched. This
+is done seperately for data and instruction addresses.
 
-Usage: pin -t mica memfootprint -- <benchmarks command line>
+analysis_type: memfootprint
+
++++ memreusedist +++
+
+Memory reuse distances.
+
+This is a highly valuable set of numbers to characterize the cache behavior
+of the application of interest. For each memory read, the corresponding
+64-byte cache block is determined. For each cache block accessed, the number
+of unique cache blocks accessed since the last time it was referenced is 
+determined, using a LRU stack. 
+The reuse distances for all memory reads are reported in buckets, of sizes
+2^n, n = 0, 1, ..., 17. The last bucket is used for all reuse distances larger
+than 2^17 (or 8MB). Also cold references (i.e. the number of unique cache blocks 
+referenced) are counted, along with the total number of memory accesses.
+
+For example: the fifth bucket, corresponding to accesses with reuse distance
+between 2^3 and 2^4 (or 8 64-byte cache blocks to 16 64-byte cache blocks).
+
+Note: because memory addresses vary over different executions of the same
+program, these numbers may vary slightly across multiple runs. Please be aware 
+of this when using these metrics for research purposes.
 
 * Interval metrics
 -------------------
@@ -123,42 +211,48 @@ Besides characterization total program execution, the tool is also capable of
 characterizing interval behavior.  The analysis are identical to the tools
 above, but flush the state for each new each interval.
 
-+++ ilp_phases +++
++++ ilp +++
 
 RESET: instruction and cycle counters (per interval), free memory used for
 memory address stuff (to avoid huge memory requirements for large workloads)
 
 DON'T TOUCH: instruction window contents; global instruction and cycle counters
 
-+++ itypes_phases +++
++++ itypes +++
 
 RESET: instruction type counters
 
-+++ ppm_phases +++
++++ ppm +++
 
 RESET: misprediction counts, taken/transition counts
 
 DON'T TOUCH: branch history tables
 
-+++ reg_phases +++
++++ reg +++
 
 RESET: operand counts, register use distribution and register age distribution
 
 DON'T TOUCH: register use counts (i.e. keep track of register use counts across
 interval boundaries); register definition addresses
 
-+++ stride_phases +++
++++ stride +++
 
 RESET: instruction counts (mem.read, mem.write, interval), distribution counts
 
 DON'T TOUCH: last (global/local) read/write memory addresses
 
-+++ memfootprint_phases +++
++++ memfootprint +++
 
 RESET: reference counters, free memory used for memory address stuff (to avoid
 huge memory requirements for large workloads) 
 
 DON'T TOUCH: -
+
++++ memreusedist +++
+
+RESET: bucket counts (including cold reference and memory access counts)
+
+DON't TOUCH: LRU stack (keep track of reuse distances over interval boundaries)
 
 * Measured in integer values, convert to floating-point
 -------------------------------------------------------
@@ -173,7 +267,7 @@ S: interval size
 N: number of intervals
 I: number of instructions
 
-+++ ilp_phases +++
++++ ilp +++
 
 FORMAT:
 
@@ -187,7 +281,7 @@ i.e.
 1 to (N-1)th line: S/cycle_count_win_size_i
 Nth line: (I-N*S)/cycle_count_win_size_i
 
-+++ itypes_phases +++
++++ itypes +++
 
 FORMAT:  
 
@@ -199,19 +293,21 @@ mem_write_cnt/instruction_cnt
 ...
 other_cnt/instruction_cnt
 
-+++ ppm_phases +++
++++ ppm +++
 
 FORMAT:
 
-instr_cnt<space>GAg_mispred_cnt_4bits<space>PAg_mispred_cnt_4bits<space>GAs_mispred_cnt_4bits<space>PAs_mispred_cnt_4bits<space>...<space>PAs_mispred_cnt_12bits
+instr_cnt<space>GAg_mispred_cnt_12bits<space>PAg_mispred_cnt_12bits<space>GAs_mispred_cnt_12bits<space>PAs_mispred_cnt_12bits<space>...<space>PAs_mispred_cnt_4bits<space>cond_br_cnt<space>transition_cnt<space>taken_cnt
 
 CONVERSION:
 
 GAg_mispred_cnt_Kbits/instr_cnt
 ...
 PAs_mispred_cnt_Kbits/instr_cnt
+transition_cnt/cond_br_cnt
+taken_cnt/cond_br_cnt
 
-+++ reg_phases +++
++++ reg +++
 
 FORMAT:
 
@@ -226,7 +322,7 @@ reg_age_cnt_2/total_reg_age
 ...
 reg_age_cnt_64/total_reg_age
 
-+++ stride_phases +++
++++ stride +++
 
 FORMAT:
 
@@ -241,6 +337,24 @@ mem_write_local_stride_0/mem_write_cnt
 ...
 mem_write_global_stride_262144/mem_write_cnt
 
-+++ memfootprint_phases +++
++++ memfootprint +++
 
 Integer output (no conversion needed).
+
+FORMAT:
+
+num_64-byte_blocks_data<space>num_4KB_pages_data<space>num_64-byte_blocks_instr<space>num_4KB_pages_instr
+
++++ memreusedist +++
+
+FORMAT:
+
+mem_access_cnt<space>cold_ref_cnt<space>acc_cnt_0<space>acc_cnt_0-2<space>acc_cnt_2-2^2<space>...<space>acc_cnt_2^16-2^17<space>acc_cnt_rest
+
+CONVERSION:
+
+cold_ref_cnt/mem_access_cnt
+acc_cnt_0/mem_access_cnt
+...
+acc_cnt_2^18-2^19/mem_access_cnt
+acc_cnt_rest/mem_access_cnt
