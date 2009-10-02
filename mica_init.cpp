@@ -154,6 +154,6 @@ void read_config(FILE* log, INT64* interval_size, MODE* mode, UINT32* _win_size)
 		LOG_MSG("ILP window size: %d\n", *_win_size);
 	}
 
-	DEBUG("All done reading config\n");
+	DEBUG_MSG("All done reading config\n");
 
 }

@@ -318,48 +318,94 @@ VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 		categorized = true;
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_control,IARG_END);
 	}
-
-	// arithmetic instructions (integer)
-	if( strcmp(cat,"LOGICAL") == 0 || strcmp(cat,"DATAXFER") == 0 || strcmp(cat,"BINARY") == 0 || strcmp(cat,"FLAGOP") == 0 || strcmp(cat,"BITBYTE") == 0        ){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_arith,IARG_END);
-	}    
-
-	// floating point instructions
-	if(strcmp(cat,"X87_ALU") == 0 || strcmp(cat,"FCMOV") == 0){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_fp,IARG_END);
-	}    
-
-	// pop/push instructions (stack usage)
-	if( (strcmp(cat,"POP") == 0) || (strcmp(cat,"PUSH") == 0)){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_stack,IARG_END);
-	}    
-
-	// [!] shift instructions (bitwise)
-	if(strcmp(cat,"SHIFT") == 0){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_shift,IARG_END);
-	}    
-
-	// [!] string instructions
-	if(strcmp(cat,"STRINGOP") == 0){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_string,IARG_END);
-	}    
-
-	// [!] MMX/SSE instructions
-	if(strcmp(cat,"MMX") == 0 || strcmp(cat,"SSE") == 0){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_sse,IARG_END);
-	}    
-
-	// other (interrupts, rotate instructions, semaphore, conditional move, system)
-	if(strcmp(cat,"INTERRUPT") == 0 || strcmp(cat,"ROTATE") == 0 || strcmp(cat,"SEMAPHORE") == 0 || strcmp(cat,"CMOV") == 0 || strcmp(cat,"SYSTEM") == 0 || strcmp(cat,"MISC") == 0 || strcmp(cat,"PREFETCH") == 0 ){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_other,IARG_END);
-	}   
+	else{
+		// arithmetic instructions (integer)
+		if( strcmp(cat,"LOGICAL") == 0 || strcmp(cat,"DATAXFER") == 0 || strcmp(cat,"BINARY") == 0 || strcmp(cat,"FLAGOP") == 0 || strcmp(cat,"BITBYTE") == 0){
+			if(categorized){
+				fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+				exit(1);
+			}
+			categorized = true;
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_arith,IARG_END);
+		} 
+		else{   
+			// floating point instructions
+			if(strcmp(cat,"X87_ALU") == 0 || strcmp(cat,"FCMOV") == 0){
+				if(categorized){
+					fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+					exit(1);
+				}
+				categorized = true;
+				INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_fp,IARG_END);
+			}    
+			else{
+				// pop/push instructions (stack usage)
+				if( (strcmp(cat,"POP") == 0) || (strcmp(cat,"PUSH") == 0)){
+					if(categorized){
+						fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+						exit(1);
+					}
+					categorized = true;
+					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_stack,IARG_END);
+				}
+				else{
+					// [!] shift instructions (bitwise)
+					if(strcmp(cat,"SHIFT") == 0){
+						if(categorized){
+							fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+							exit(1);
+						}
+						categorized = true;
+						INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_shift,IARG_END);
+					}
+					else{    
+						// [!] string instructions
+						if(strcmp(cat,"STRINGOP") == 0){
+							if(categorized){
+								fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+								exit(1);
+							}
+							categorized = true;
+							INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_string,IARG_END);
+						}
+						else{
+							// [!] MMX/SSE instructions
+							if(strcmp(cat,"MMX") == 0 || strcmp(cat,"SSE") == 0){
+								if(categorized){
+									fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+									exit(1);
+								}
+								categorized = true;
+								INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_sse,IARG_END);
+							}    
+							else{
+								// other (interrupts, rotate instructions, semaphore, conditional move, system)
+								if(strcmp(cat,"INTERRUPT") == 0 || strcmp(cat,"ROTATE") == 0 || strcmp(cat,"SEMAPHORE") == 0 || strcmp(cat,"CMOV") == 0 || strcmp(cat,"SYSTEM") == 0 || strcmp(cat,"MISC") == 0 || strcmp(cat,"PREFETCH") == 0 ){
+									if(categorized){
+										fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+										exit(1);
+									}
+									categorized = true;
+									INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_other,IARG_END);
+								}   
+								else{
+									// [!] NOP instructions
+									if(strcmp(cat,"NOP") == 0){
+										if(categorized){
+											fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+											exit(1);
+										}
+										categorized = true;
+										INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_nop,IARG_END);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 
 	if(!categorized){
 		fprintf(stderr,"What the hell ?!? I don't know this one yet! (cat: %s, opcode: %s)\n", cat, opcode);

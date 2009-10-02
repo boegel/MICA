@@ -25,6 +25,7 @@ VOID itypes_count_shift();
 VOID itypes_count_string();
 VOID itypes_count_sse();
 VOID itypes_count_other();
+VOID itypes_count_nop();
 
 VOID itypes_instr_interval_output();
 VOID itypes_instr_interval_reset();

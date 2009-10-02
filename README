@@ -127,6 +127,7 @@ output):
 - string
 - sse
 - other
+- nop
 
 analysis_type: itypes
 
@@ -192,12 +193,15 @@ of the application of interest. For each memory read, the corresponding
 64-byte cache block is determined. For each cache block accessed, the number
 of unique cache blocks accessed since the last time it was referenced is 
 determined, using a LRU stack. 
-The reuse distances for all memory reads are reported in buckets, of sizes
-2^n, n = 0, 1, ..., 19. The last bucket is used for all reuse distances larger
-than 2^19 (or 32MB). Also cold references (i.e. the number of unique cache blocks 
-referenced) are counted, along with the total number of memory accesses.
+The reuse distances for all memory reads are reported in buckets. The first
+bucket is used for so called 'cold references'. The subsequent buckets capture reuse 
+distances of [2^n, 2^(n+1)[, where n ranges from 0 to 18. The first of these
+actually captures [0,2[ (not [1,2[), while the last bucket, [2^18, 2^19[, captures all 
+reuse distances larger then or equal to 2^18, so it's in fact [2^18, oo[.
+In total, this delivers 20 buckets, and the total number of memory accesses 
+(the first number in the output), thus 21 numbers.
 
-For example: the fifth bucket, corresponding to accesses with reuse distance
+For example: the fifth bucket, corresponds to accesses with reuse distance
 between 2^3 and 2^4 (or 8 64-byte cache blocks to 16 64-byte cache blocks).
 
 Note: because memory addresses vary over different executions of the same
@@ -285,7 +289,7 @@ Nth line: (I-N*S)/cycle_count_win_size_i
 
 FORMAT:  
 
-instruction_cnt<space>mem_read_cnt<space>mem_write_cnt<space>control_cnt<space>arith_cnt<space>fp_cnt<space>stack_cnt<space>shift_cnt<space>string_cnt<space>sse_cnt<space>other_cnt
+instruction_cnt<space>mem_read_cnt<space>mem_write_cnt<space>control_cnt<space>arith_cnt<space>fp_cnt<space>stack_cnt<space>shift_cnt<space>string_cnt<space>sse_cnt<space>other_cnt<space>nop_cnt
 
 CONVERSION:
 
@@ -347,7 +351,7 @@ num_64-byte_blocks_data<space>num_4KB_pages_data<space>num_64-byte_blocks_instr<
 
 FORMAT:
 
-mem_access_cnt<space>cold_ref_cnt<space>acc_cnt_0<space>acc_cnt_0-2<space>acc_cnt_2-2^2<space>...<space>acc_cnt_2^18-2^19<space>acc_cnt_rest
+mem_access_cnt<space>cold_ref_cnt<space>acc_cnt_0-2<space>acc_cnt_2-2^2<space>acc_cnt_2^2-2^3<space>...<space>acc_cnt_2^17-2^18<space>acc_cnt_over_2^18
 
 CONVERSION:
 

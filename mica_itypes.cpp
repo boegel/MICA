@@ -30,6 +30,7 @@ INT64 shift_cnt;
 INT64 string_cnt;
 INT64 sse_cnt;
 INT64 other_cnt;
+INT64 nop_cnt;
 
 /* counter functions */
 
@@ -39,7 +40,7 @@ ADDRINT itypes_instr_intervals(){
 
 VOID itypes_instr_interval_output(){
 	output_file_itypes = fopen("itypes_phases_int_pin.out","a");
-	fprintf(output_file_itypes, "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n", (long long)interval_size, (long long)mem_read_cnt, (long long)mem_write_cnt, (long long)control_cnt, (long long)arith_cnt, (long long)fp_cnt, (long long)stack_cnt, (long long)shift_cnt, (long long)string_cnt, (long long)sse_cnt, (long long)other_cnt);
+	fprintf(output_file_itypes, "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n", (long long)interval_size, (long long)mem_read_cnt, (long long)mem_write_cnt, (long long)control_cnt, (long long)arith_cnt, (long long)fp_cnt, (long long)stack_cnt, (long long)shift_cnt, (long long)string_cnt, (long long)sse_cnt, (long long)other_cnt, (long long)nop_cnt);
 	fclose(output_file_itypes);
 }
 
@@ -54,6 +55,7 @@ VOID itypes_instr_interval_reset(){
 	string_cnt = 0;
 	sse_cnt = 0;
 	other_cnt = 0;
+	nop_cnt = 0;
 }
 
 VOID itypes_instr_interval(){
@@ -73,6 +75,7 @@ VOID itypes_count_shift() { shift_cnt++; }
 VOID itypes_count_string() { string_cnt++; }
 VOID itypes_count_sse() { sse_cnt++; }
 VOID itypes_count_other() { other_cnt++; }
+VOID itypes_count_nop() { nop_cnt++; }
 
 /* initializing */
 void init_itypes(){
@@ -89,6 +92,7 @@ void init_itypes(){
 	string_cnt = 0;
 	sse_cnt = 0;
 	other_cnt = 0;
+	nop_cnt = 0;
 
 	if(interval_size != -1){		
 		output_file_itypes = fopen("itypes_phases_int_pin.out","w");
@@ -121,51 +125,97 @@ VOID instrument_itypes(INS ins, VOID* v){
 		categorized = true;
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_control,IARG_END);
 	}
-
-	// arithmetic instructions (integer)
-	if( strcmp(cat,"LOGICAL") == 0 || strcmp(cat,"DATAXFER") == 0 || strcmp(cat,"BINARY") == 0 || strcmp(cat,"FLAGOP") == 0 || strcmp(cat,"BITBYTE") == 0        ){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_arith,IARG_END);
-	}    
-
-	// floating point instructions
-	if(strcmp(cat,"X87_ALU") == 0 || strcmp(cat,"FCMOV") == 0){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_fp,IARG_END);
-	}    
-
-	// pop/push instructions (stack usage)
-	if( (strcmp(cat,"POP") == 0) || (strcmp(cat,"PUSH") == 0)){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_stack,IARG_END);
-	}    
-
-	// [!] shift instructions (bitwise)
-	if(strcmp(cat,"SHIFT") == 0){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_shift,IARG_END);
-	}    
-
-	// [!] string instructions
-	if(strcmp(cat,"STRINGOP") == 0){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_string,IARG_END);
-	}    
-
-	// [!] MMX/SSE instructions
-	if(strcmp(cat,"MMX") == 0 || strcmp(cat,"SSE") == 0){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_sse,IARG_END);
-	}    
-
-	// other (interrupts, rotate instructions, semaphore, conditional move, system)
-	if(strcmp(cat,"INTERRUPT") == 0 || strcmp(cat,"ROTATE") == 0 || strcmp(cat,"SEMAPHORE") == 0 || strcmp(cat,"CMOV") == 0 || strcmp(cat,"SYSTEM") == 0 || strcmp(cat,"MISC") == 0 || strcmp(cat,"PREFETCH") == 0 ){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_other,IARG_END);
-	}   
+	else{
+		// arithmetic instructions (integer)
+		if( strcmp(cat,"LOGICAL") == 0 || strcmp(cat,"DATAXFER") == 0 || strcmp(cat,"BINARY") == 0 || strcmp(cat,"FLAGOP") == 0 || strcmp(cat,"BITBYTE") == 0){
+			if(categorized){
+				fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+				exit(1);
+			}
+			categorized = true;
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_arith,IARG_END);
+		} 
+		else{   
+			// floating point instructions
+			if(strcmp(cat,"X87_ALU") == 0 || strcmp(cat,"FCMOV") == 0){
+				if(categorized){
+					fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+					exit(1);
+				}
+				categorized = true;
+				INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_fp,IARG_END);
+			}    
+			else{
+				// pop/push instructions (stack usage)
+				if( (strcmp(cat,"POP") == 0) || (strcmp(cat,"PUSH") == 0)){
+					if(categorized){
+						fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+						exit(1);
+					}
+					categorized = true;
+					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_stack,IARG_END);
+				}
+				else{
+					// [!] shift instructions (bitwise)
+					if(strcmp(cat,"SHIFT") == 0){
+						if(categorized){
+							fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+							exit(1);
+						}
+						categorized = true;
+						INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_shift,IARG_END);
+					}
+					else{    
+						// [!] string instructions
+						if(strcmp(cat,"STRINGOP") == 0){
+							if(categorized){
+								fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+								exit(1);
+							}
+							categorized = true;
+							INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_string,IARG_END);
+						}
+						else{
+							// [!] MMX/SSE instructions
+							if(strcmp(cat,"MMX") == 0 || strcmp(cat,"SSE") == 0){
+								if(categorized){
+									fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+									exit(1);
+								}
+								categorized = true;
+								INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_sse,IARG_END);
+							}    
+							else{
+								// other (interrupts, rotate instructions, semaphore, conditional move, system)
+								if(strcmp(cat,"INTERRUPT") == 0 || strcmp(cat,"ROTATE") == 0 || strcmp(cat,"SEMAPHORE") == 0 || strcmp(cat,"CMOV") == 0 || strcmp(cat,"SYSTEM") == 0 || strcmp(cat,"MISC") == 0 || strcmp(cat,"PREFETCH") == 0 ){
+									if(categorized){
+										fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+										exit(1);
+									}
+									categorized = true;
+									INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_other,IARG_END);
+								}   
+								else{
+									// [!] NOP instructions
+									if(strcmp(cat,"NOP") == 0){
+										if(categorized){
+											fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
+											exit(1);
+										}
+										categorized = true;
+										INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_nop,IARG_END);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 
 	if(!categorized){
-		fprintf(stderr,"What the hell ?!? I don't know this one yet! (cat: %s, opcode: %s)\n", cat, opcode);
+		fprintf(stderr,"What the hell ?!? I don't know this one yet! (cat: %s, opcode: %s) -> not NOP\n", cat, opcode);
 		exit(1);
 	} 
 
@@ -182,11 +232,11 @@ VOID fini_itypes(INT32 code, VOID* v){
 
 	if(interval_size == -1){
 		output_file_itypes = fopen("itypes_full_int_pin.out","w");
-		fprintf(output_file_itypes, "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n", (long long)total_ins_count, (long long)mem_read_cnt, (long long)mem_write_cnt, (long long)control_cnt, (long long)arith_cnt, (long long)fp_cnt, (long long)stack_cnt, (long long)shift_cnt, (long long)string_cnt, (long long)sse_cnt, (long long)other_cnt);
+		fprintf(output_file_itypes, "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n", (long long)total_ins_count, (long long)mem_read_cnt, (long long)mem_write_cnt, (long long)control_cnt, (long long)arith_cnt, (long long)fp_cnt, (long long)stack_cnt, (long long)shift_cnt, (long long)string_cnt, (long long)sse_cnt, (long long)other_cnt, (long long)nop_cnt);
 	}
 	else{
 		output_file_itypes = fopen("itypes_phases_int_pin.out","a");
-		fprintf(output_file_itypes, "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n", (long long)interval_ins_count, (long long)mem_read_cnt, (long long)mem_write_cnt, (long long)control_cnt, (long long)arith_cnt, (long long)fp_cnt, (long long)stack_cnt, (long long)shift_cnt, (long long)string_cnt, (long long)sse_cnt, (long long)other_cnt);
+		fprintf(output_file_itypes, "%lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld %lld\n", (long long)interval_ins_count, (long long)mem_read_cnt, (long long)mem_write_cnt, (long long)control_cnt, (long long)arith_cnt, (long long)fp_cnt, (long long)stack_cnt, (long long)shift_cnt, (long long)string_cnt, (long long)sse_cnt, (long long)other_cnt, (long long)nop_cnt);
 	}
 	fprintf(output_file_itypes,"number of instructions: %lld\n", total_ins_count);
 	fclose(output_file_itypes);

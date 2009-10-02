@@ -1,3 +1,15 @@
+June 13th 2008
+--------------
+
+MICA v0.22
+
+- bug fixes in itypes:
+	* fixed issue with instructions in MISC category being counted double (both in 'control flow' and 'other' buckets)
+	  (thanks to Ahmed S. Al-Zawawi for bringing my attention to this issue)
+	* added NOP instructions category
+- adjusted README file to make meaning of different buckets in memreusedist more clear 
+  (thanks to Kshitij Sudan for reporting this)
+
 May 20th 2008
 --------------
 
