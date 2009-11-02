@@ -10,7 +10,7 @@
 /* MICA includes */
 #include "mica_all.h"
 #include "mica_ilp.h" // needed for empty_all_buffer_all
-#include "mica_itypes.h" // needed for itypes_count_* , itypes_instr_interval_output and itypes_instr_interval_reset
+#include "mica_itypes.h" // needed for itypes_count , itypes_instr_interval_output and itypes_instr_interval_reset
 #include "mica_ppm.h" // needed for instrument_ppm_cond_br, ppm_instr_interval_output and ppm_instr_interval_reset
 #include "mica_reg.h" // needed for reg_instr_full, reg_instr_intervals, reg_instr_interval_output and reg_instr_interval_reset
 #include "mica_stride.h" // needed for stride_index_mem*, readMem_stride, writeMem_stride, stride_instr_interval_output and stride_instr_interval_reset
@@ -23,6 +23,15 @@ extern INT64 total_ins_count;
 extern INT64 interval_ins_count;
 
 extern INT64 interval_size;
+
+extern identifier** group_identifiers;
+extern INT64* group_ids_cnt;
+extern INT64* group_counts;
+extern INT64 number_of_groups;
+
+extern INT64 other_ids_cnt;
+extern INT64 other_ids_max_cnt;
+extern identifier* other_group_identifiers;
 
 void init_all(){
 
@@ -41,7 +50,7 @@ VOID all_instr_full_count(){
 
 	if(total_ins_count % PROGRESS_THRESHOLD == 0){
 		FILE* f = fopen("mica_progress.txt","w");
-		fprintf(f,"%lld*10^9 instructions analyzed\n", total_ins_count/PROGRESS_THRESHOLD);
+		fprintf(f,"%lld*10^7 instructions analyzed\n", total_ins_count/PROGRESS_THRESHOLD);
 		fclose(f);
 	}
 }
@@ -52,15 +61,15 @@ VOID all_instr_intervals_count(){
 
 	if(total_ins_count % PROGRESS_THRESHOLD == 0){
 		FILE* f = fopen("mica_progress.txt","w");
-		fprintf(f,"%lld*10^9 instructions analyzed\n", total_ins_count/PROGRESS_THRESHOLD);
+		fprintf(f,"%lld*10^7 instructions analyzed\n", total_ins_count/PROGRESS_THRESHOLD);
 		fclose(f);
 	}
 }
 
 ADDRINT all_buffer_instruction_2reads_write(void* _e, ADDRINT read1_addr, ADDRINT read2_addr, ADDRINT read_size, UINT32 stride_index_memread1, UINT32 stride_index_memread2, ADDRINT write_addr, ADDRINT write_size, UINT32 stride_index_memwrite){
 
-	itypes_count_mem_read();
-	itypes_count_mem_write();
+	//itypes_count_mem_read();
+	//itypes_count_mem_write();
 	readMem_stride(stride_index_memread1, read1_addr, read_size);
 	readMem_stride(stride_index_memread2, read2_addr, read_size);
 	writeMem_stride(stride_index_memwrite, write_addr, write_size);
@@ -74,8 +83,8 @@ ADDRINT all_buffer_instruction_2reads_write(void* _e, ADDRINT read1_addr, ADDRIN
 
 ADDRINT all_buffer_instruction_read_write(void* _e, ADDRINT read1_addr, ADDRINT read_size, UINT32 stride_index_memread1, ADDRINT write_addr, ADDRINT write_size, UINT32 stride_index_memwrite){
 
-	itypes_count_mem_read();
-	itypes_count_mem_write();
+	//itypes_count_mem_read();
+	//itypes_count_mem_write();
 	readMem_stride(stride_index_memread1, read1_addr, read_size);
 	writeMem_stride(stride_index_memwrite, write_addr, write_size);
 	memOp(read1_addr, read_size); // memfootprint
@@ -86,7 +95,7 @@ ADDRINT all_buffer_instruction_read_write(void* _e, ADDRINT read1_addr, ADDRINT 
 
 ADDRINT all_buffer_instruction_2reads(void* _e, ADDRINT read1_addr, ADDRINT read2_addr, ADDRINT read_size, UINT32 stride_index_memread1, UINT32 stride_index_memread2){
 
-	itypes_count_mem_read();
+	//itypes_count_mem_read();
 	readMem_stride(stride_index_memread1, read1_addr, read_size);
 	readMem_stride(stride_index_memread2, read2_addr, read_size);
 	memOp(read1_addr, read_size); // memfootprint
@@ -98,7 +107,7 @@ ADDRINT all_buffer_instruction_2reads(void* _e, ADDRINT read1_addr, ADDRINT read
 
 ADDRINT all_buffer_instruction_read(void* _e, ADDRINT read1_addr, ADDRINT read_size, UINT32 stride_index_memread1){
 
-	itypes_count_mem_read();
+	//itypes_count_mem_read();
 	readMem_stride(stride_index_memread1, read1_addr, read_size);
 	memOp(read1_addr, read_size); // memfootprint
 	memreusedist_memRead(read1_addr, read_size); // memreusedist
@@ -107,7 +116,7 @@ ADDRINT all_buffer_instruction_read(void* _e, ADDRINT read1_addr, ADDRINT read_s
 
 ADDRINT all_buffer_instruction_write(void* _e, ADDRINT write_addr, ADDRINT write_size, UINT32 stride_index_memwrite){
 
-	itypes_count_mem_write();
+	//itypes_count_mem_write();
 	writeMem_stride(stride_index_memwrite, write_addr, write_size);
 	memOp(write_addr, write_size); // memfootprint
 	return ilp_buffer_instruction_write(_e, write_addr, write_size);
@@ -156,7 +165,7 @@ VOID all_instr_interval(){
 
 VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 
-	UINT32 i, maxNumRegsProd, maxNumRegsCons, regReadCnt, regWriteCnt, opCnt, regOpCnt;
+	UINT32 i, j, maxNumRegsProd, maxNumRegsCons, regReadCnt, regWriteCnt, opCnt, regOpCnt;
 	REG reg;
 	BOOL categorized = false;
 	char cat[50];
@@ -313,104 +322,76 @@ VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 	INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)empty_ilp_buffer_all, IARG_END);
 
 	/* +++ ITYPES +++ */
-	// control flow instructions
-	if(strcmp(cat,"COND_BR") == 0 || strcmp(cat,"UNCOND_BR") == 0 || strcmp(opcode,"LEAVE") == 0 || strcmp(opcode,"RET_NEAR") == 0 || strcmp(opcode,"CALL_NEAR") == 0){
-		categorized = true;
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_control,IARG_END);
-	}
-	else{
-		// arithmetic instructions (integer)
-		if( strcmp(cat,"LOGICAL") == 0 || strcmp(cat,"DATAXFER") == 0 || strcmp(cat,"BINARY") == 0 || strcmp(cat,"FLAGOP") == 0 || strcmp(cat,"BITBYTE") == 0){
-			if(categorized){
-				fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
-				exit(1);
-			}
-			categorized = true;
-			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_arith,IARG_END);
-		} 
-		else{   
-			// floating point instructions
-			if(strcmp(cat,"X87_ALU") == 0 || strcmp(cat,"FCMOV") == 0){
-				if(categorized){
-					fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
-					exit(1);
-				}
-				categorized = true;
-				INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_fp,IARG_END);
-			}    
-			else{
-				// pop/push instructions (stack usage)
-				if( (strcmp(cat,"POP") == 0) || (strcmp(cat,"PUSH") == 0)){
-					if(categorized){
-						fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
-						exit(1);
-					}
+
+	// go over all groups, increase group count if instruction matches that group
+	// group counts are increased at most once per instruction executed, 
+	// even if the instruction matches multiple identifiers in that group
+	for(i=0; i < number_of_groups; i++){
+		for(j=0; j < group_ids_cnt[i]; j++){
+			if(group_identifiers[i][j].type == identifier_type::ID_TYPE_CATEGORY){
+				if(strcmp(group_identifiers[i][j].str, cat) == 0){
+					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count, IARG_UINT32, i, IARG_END);
 					categorized = true;
-					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_stack,IARG_END);
+					break;
+				}
+			}
+			else{
+				if(group_identifiers[i][j].type == identifier_type::ID_TYPE_OPCODE){
+					if(strcmp(group_identifiers[i][j].str, opcode) == 0){
+						INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count, IARG_UINT32, i, IARG_END);
+						categorized = true;
+						break;
+					}
 				}
 				else{
-					// [!] shift instructions (bitwise)
-					if(strcmp(cat,"SHIFT") == 0){
-						if(categorized){
-							fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
-							exit(1);
-						}
-						categorized = true;
-						INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_shift,IARG_END);
-					}
-					else{    
-						// [!] string instructions
-						if(strcmp(cat,"STRINGOP") == 0){
-							if(categorized){
-								fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
-								exit(1);
-							}
+					if(group_identifiers[i][j].type == identifier_type::ID_TYPE_SPECIAL){
+						if(strcmp(group_identifiers[i][j].str, "mem_read") == 0 && INS_IsMemoryRead(ins) ){
+							INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count, IARG_UINT32, i, IARG_END);
 							categorized = true;
-							INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_string,IARG_END);
+							break;
 						}
 						else{
-							// [!] MMX/SSE instructions
-							if(strcmp(cat,"MMX") == 0 || strcmp(cat,"SSE") == 0){
-								if(categorized){
-									fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
-									exit(1);
-								}
+							if(strcmp(group_identifiers[i][j].str, "mem_write") == 0 && INS_IsMemoryWrite(ins) ){
+								INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count, IARG_UINT32, i, IARG_END);
 								categorized = true;
-								INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_sse,IARG_END);
-							}    
+								break;
+							}
 							else{
-								// other (interrupts, rotate instructions, semaphore, conditional move, system)
-								if(strcmp(cat,"INTERRUPT") == 0 || strcmp(cat,"ROTATE") == 0 || strcmp(cat,"SEMAPHORE") == 0 || strcmp(cat,"CMOV") == 0 || strcmp(cat,"SYSTEM") == 0 || strcmp(cat,"MISC") == 0 || strcmp(cat,"PREFETCH") == 0 ){
-									if(categorized){
-										fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
-										exit(1);
-									}
-									categorized = true;
-									INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_other,IARG_END);
-								}   
-								else{
-									// [!] NOP instructions
-									if(strcmp(cat,"NOP") == 0){
-										if(categorized){
-											fprintf(stderr, "ERROR: Already categorized! (cat: %s, opcode: %s)\n", cat, opcode);
-											exit(1);
-										}
-										categorized = true;
-										INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count_nop,IARG_END);
-									}
-								}
 							}
 						}
+					}
+					else{
+						fprintf(stderr, "ERROR! Unknown identifier type specified (%d).\n", group_identifiers[i][j].type);
 					}
 				}
 			}
 		}
 	}
 
-	if(!categorized){
-		fprintf(stderr,"What the hell ?!? I don't know this one yet! (cat: %s, opcode: %s)\n", cat, opcode);
-		exit(1);
-	} 
+	// count instruction that don't fit in any of the specified categories in the last group
+	if( !categorized ){
+		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count, IARG_UINT32, (unsigned int)number_of_groups, IARG_END);
+
+                // check whether this category is already known in the 'other' group
+                for(i=0; i < other_ids_cnt; i++){
+                        if(strcmp(other_group_identifiers[i].str, cat) == 0)
+                                break;
+                }
+
+                // if a new instruction category is found, add it to the set
+                if(i == other_ids_cnt){
+                        other_group_identifiers[other_ids_cnt].type = identifier_type::ID_TYPE_CATEGORY;
+                        other_group_identifiers[other_ids_cnt].str = (char*)malloc((strlen(cat)+1)*sizeof(char));
+                        strcpy(other_group_identifiers[other_ids_cnt].str, cat);
+                        other_ids_cnt++;
+                }
+
+                // prepare for (possible) next category
+                if(other_ids_cnt == other_ids_max_cnt){
+                        other_ids_max_cnt *= 2;
+                        other_group_identifiers = (identifier*)realloc(other_group_identifiers, other_ids_max_cnt*sizeof(identifier));
+                }
+	}
 
 	/* +++ PPM *** */
 	if(strcmp(cat,"COND_BR") == 0){

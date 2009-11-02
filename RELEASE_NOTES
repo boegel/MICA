@@ -1,3 +1,15 @@
+X Xth 2009
+------------------
+
+MICA v0.3
+
+- increases flexibility of itypes analysis significantly
+        - instruction groups used in itypes analysis can be specified by the user now,
+          using a itypes.spec file; specify the filename in mica.conf using an entry like:
+                itypes_spec_file: <filename>
+        - by default, the old instruction groups are used
+
+
 September 22th 2009
 -------------------
 
@@ -8,7 +20,7 @@ recent Pin kits. This small patch release should resolve these issues.
 
 - bug fixes:
         * adjusted makefile and README according to Pin kit directory tree changes
-        * adjusted mica_itypes.cpp to recognize both NOP and WIDENOP categories
+        * adjust mica_itypes.cpp to recognize both NOP and WIDENOP categories
 
 
 June 13th 2008

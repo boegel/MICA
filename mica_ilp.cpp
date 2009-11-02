@@ -17,7 +17,7 @@
 
 const UINT32 win_sizes[ILP_WIN_SIZE_CNT] = {32, 64, 128, 256};
 
-extern UINT32 _win_size;
+extern UINT32 _ilp_win_size;
 UINT32 win_size;
 
 /* buffer settings */
@@ -102,7 +102,7 @@ void init_ilp_one(){
 	init_ilp_common();
 	init_ilp_buffering();
 
-	win_size = _win_size;
+	win_size = _ilp_win_size;
 
 	size_pow_times = 10;
 	if((all_times = (UINT64*)malloc((1 << size_pow_times) * sizeof(UINT64))) == (UINT64*)NULL){

@@ -15,37 +15,26 @@
  */
 void setup_mica_log(FILE* *log){
 
-	int cnt;
 	char name[20];
 	sprintf(name, "mica.log");
-	FILE* test = fopen(name,"r");
-
-	cnt = 0;
-	while(test != (FILE*)NULL){
-		sprintf(name, "mica.log.%d", ++cnt);
-		test = fopen(name,"r");
-	}
 
 	*log = fopen(name,"w");
 	if( *log == (FILE*)NULL ){
 		fprintf(stderr,"Could not create mica.log, aborting!\n");
 		exit(1);
 	}
-	else{
-		if( strcmp(name,"mica.log") != 0)
-			fprintf(stderr,"\n   WARNING: Writing log messages to %s, because a file named \'mica.log\' already exists.\n", name);
-	}
 }
 
 /*
  * Read mica.conf config file for MICA.
  *
- * analysis_type: 'all' | 'ilp' | 'ilp_one' | 'itypes' | 'ppm' | 'reg' | 'stride' | 'workingset'
+ * analysis_type: 'all' | 'ilp' | 'ilp_one' | 'itypes' | 'ppm' | 'reg' | 'stride' | 'workingset' | 'custom'
  * interval_size: 'full' | <integer>
  * ilp_size: <integer>
+ * itypes_spec_file: <string>
  */
 
-void read_config(FILE* log, INT64* interval_size, MODE* mode, UINT32* _win_size){
+void read_config(FILE* log, INT64* interval_size, MODE* mode, UINT32* _ilp_win_size, char** _itypes_spec_file){
 
 	char* string;
 	FILE* config_file = fopen("mica.conf","r");
@@ -66,7 +55,6 @@ void read_config(FILE* log, INT64* interval_size, MODE* mode, UINT32* _win_size)
 	}
 
 	fscanf(config_file,"analysis_type: %s\n",string);
-
 	DEBUG_MSG("Analysis type: %s\n",string);
 
 	// figure out mode we are running in
@@ -115,15 +103,15 @@ void read_config(FILE* log, INT64* interval_size, MODE* mode, UINT32* _win_size)
 										LOG_MSG("Measuring MEMREUSEDIST characteristics...\n");
 									}
 									else{
-										if(strcmp(string,"mytype") == 0){
-											*mode = MODE_MYTYPE;
-											LOG_MSG("Measuring MYTYPE characteristics...\n");
+										if(strcmp(string,"custom") == 0){
+											*mode = MODE_CUSTOM;
+											LOG_MSG("Measuring CUSTOM characteristics...\n");
 										}
 										else{
 											LOG_MSG("\nERROR: Unknown set of characteristics chosen!\n");
-											LOG_MSG("   Available characteristics include: 'all', 'ilp', 'ilp_one', 'itypes', 'ppm', 'reg', 'stride', 'memfootprint', 'memreusedist'\n");
+											LOG_MSG("   Available characteristics include: 'all', 'ilp', 'ilp_one', 'itypes', 'ppm', 'reg', 'stride', 'memfootprint', 'memreusedist', 'custom'\n");
 											ERROR("\nERROR: Unknown set of characteristics chosen!\n");
-											ERROR("   Available characteristics include: 'all', 'ilp', 'ilp_one', 'itypes', 'ppm', 'reg', 'stride', 'memfootprint', 'memreusedist'\n");
+											ERROR("   Available characteristics include: 'all', 'ilp', 'ilp_one', 'itypes', 'ppm', 'reg', 'stride', 'memfootprint', 'memreusedist', 'custom'\n");
 										}
 									}
 								}
@@ -148,11 +136,28 @@ void read_config(FILE* log, INT64* interval_size, MODE* mode, UINT32* _win_size)
 		LOG_MSG("Returning data for each interval of %lld instructions...\n", (INT64)*interval_size);
 	}
 
+        // read window size for ILP_ONE
 	if(*mode == MODE_ILP_ONE){
-		fscanf(config_file,"ilp_size: %s\n", string);
-		*_win_size = (UINT32)atoi(string);
-		LOG_MSG("ILP window size: %d\n", *_win_size);
+                if(fscanf(config_file,"ilp_size: %s\n", string) == 1){
+                        *_ilp_win_size = (UINT32)atoi(string);
+                        LOG_MSG("ILP window size: %d\n", *_ilp_win_size);
+                }
+                else{
+                        fprintf(stderr, "ERROR! ILP_ONE mode was specified, but no window size was found along with it!\n");
+                        exit(-1);
+                }
 	}
+
+        // possibly read itypes specification filename
+        *_itypes_spec_file = NULL;
+        if(*mode == MODE_ITYPES || *mode == MODE_ALL){
+                if(fscanf(config_file,"itypes_spec_file: %s\n", string) == 1){
+                        *_itypes_spec_file = (char*)malloc((strlen(string)+1)*sizeof(char));
+                        strcpy(*_itypes_spec_file, string);
+                        fprintf(stdout,"ITYPES spec file: %s\n", *_itypes_spec_file);
+                        LOG_MSG("ITYPES spec file: %s\n", *_itypes_spec_file);
+                }
+        }
 
 	DEBUG_MSG("All done reading config\n");
 
