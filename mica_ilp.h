@@ -20,10 +20,19 @@ VOID fini_ilp_all(INT32 code, VOID* v);
 VOID fini_ilp_one(INT32 code, VOID* v);
 
 /* support for fast instrumentation of all characteristics in a single run (avoid multiple InsertCalls!) */
-ADDRINT ilp_buffer_instruction_2reads_write(void* _e, ADDRINT read1_addr, ADDRINT read2_addr, ADDRINT read_size, ADDRINT write_addr, ADDRINT write_size);
+//void ilp_buffer_instruction_only(void* _e);
+VOID PIN_FAST_ANALYSIS_CALL ilp_buffer_instruction_only(void* _e);
+//void ilp_buffer_instruction_read(ADDRINT read1_addr, ADDRINT read_size);
+VOID PIN_FAST_ANALYSIS_CALL ilp_buffer_instruction_read(ADDRINT read1_addr, ADDRINT read_size);
+//void ilp_buffer_instruction_read2(ADDRINT read2_addr);
+VOID PIN_FAST_ANALYSIS_CALL ilp_buffer_instruction_read2(ADDRINT read2_addr);
+//void ilp_buffer_instruction_write(ADDRINT write_addr, ADDRINT write_size);
+VOID PIN_FAST_ANALYSIS_CALL ilp_buffer_instruction_write(ADDRINT write_addr, ADDRINT write_size);
+ADDRINT ilp_buffer_instruction_next();
+/*ADDRINT ilp_buffer_instruction_2reads_write(void* _e, ADDRINT read1_addr, ADDRINT read2_addr, ADDRINT read_size, ADDRINT write_addr, ADDRINT write_size);
 ADDRINT ilp_buffer_instruction_read_write(void* _e, ADDRINT read1_addr, ADDRINT read_size, ADDRINT write_addr, ADDRINT write_size);
 ADDRINT ilp_buffer_instruction_2reads(void* _e, ADDRINT read1_addr, ADDRINT read2_addr, ADDRINT read_size);
 ADDRINT ilp_buffer_instruction_read(void* _e, ADDRINT read1_addr, ADDRINT read_size);
 ADDRINT ilp_buffer_instruction_write(void* _e, ADDRINT write_addr, ADDRINT write_size);
-ADDRINT ilp_buffer_instruction(void* _e);
+ADDRINT ilp_buffer_instruction(void* _e);*/
 VOID empty_ilp_buffer_all(); 

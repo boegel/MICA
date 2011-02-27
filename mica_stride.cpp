@@ -16,9 +16,11 @@
 
 extern INT64 interval_size;
 extern INT64 interval_ins_count;
+extern INT64 interval_ins_count_for_hpc_alignment;
 extern INT64 total_ins_count;
+extern INT64 total_ins_count_for_hpc_alignment;
 
-FILE* output_file_stride;
+ofstream output_file_stride;
 
 UINT64 numRead, numWrite;
 UINT32 readIndex;
@@ -53,16 +55,16 @@ void init_stride(){
 
 	/* allocate memory */
 	if ((instrRead = (ADDRINT*) malloc (numRead * sizeof (ADDRINT))) == (ADDRINT*) NULL) {
-		fprintf (stderr, "Not enough memory (in main (2))\n");
+		cerr << "Not enough memory (in main (2))" << endl;
 		exit (0);
 	}
-	//fprintf(stderr,"malloc %d bytes\n",numRead*sizeof(ADDRINT));
+	//cerr << "malloc " << numRead*sizeof(ADDRINT) << "bytes" << endl;
 
 	if ((instrWrite = (ADDRINT*) malloc (numWrite * sizeof (ADDRINT))) == (ADDRINT*) NULL) {
-		fprintf (stderr, "Not enough memory (in main (3))\n");
+		cerr << "Not enough memory (in main (3))" << endl;
 		exit (0);
 	}
-	//fprintf(stderr,"malloc %d bytes\n",numWrite*sizeof(ADDRINT));
+	//cerr << "malloc " << numWrite*sizeof(ADDRINT) << "bytes" << endl;
 
 	/* initialize */
 	readIndex = 1;
@@ -85,7 +87,7 @@ void init_stride(){
 
 	indices_memRead_size = 1024;
 	if( (indices_memRead = (ADDRINT*) malloc(indices_memRead_size*sizeof(ADDRINT))) == (ADDRINT*)NULL){
-		fprintf(stderr,"Could not allocate memory for indices_memRead\n");
+		cerr << "Could not allocate memory for indices_memRead" << endl;
 		exit(1);
 	}
 	for (i = 0; i < (int)indices_memRead_size; i++)
@@ -93,16 +95,16 @@ void init_stride(){
 
 	indices_memWrite_size = 1024;
 	if( (indices_memWrite = (ADDRINT*) malloc(indices_memWrite_size*sizeof(ADDRINT))) == (ADDRINT*)NULL){
-		fprintf(stderr,"Could not allocate memory for indices_memWrite\n");
+	        cerr << "Could not allocate memory for indices_memWrite" << endl;
 		exit(1);
 	}
 	
 	for (i = 0; i < (int)indices_memWrite_size; i++)
 		indices_memWrite[i] = 0;
 
-	if(interval_size != -1){		
-		output_file_stride = fopen("stride_phases_int_pin.out","w");
-		fclose(output_file_stride);
+	if(interval_size != -1){
+		output_file_stride.open("stride_phases_int_pin.out", ios::out|ios::trunc);
+		output_file_stride.close();
 	}
 }
 
@@ -112,7 +114,7 @@ void init_stride(){
 ADDRINT stride_instr_intervals(){
 	/* counting instructions is done in all_instr_intervals() */
 
-	return (ADDRINT) (total_ins_count % interval_size == 0);
+	return (ADDRINT) (interval_ins_count_for_hpc_alignment == interval_size);
 }
 
 VOID stride_instr_interval_output(){
@@ -120,18 +122,18 @@ VOID stride_instr_interval_output(){
 
 	UINT64 cum;
 
-	output_file_stride = fopen("stride_phases_int_pin.out","a");
+	output_file_stride.open("stride_phases_int_pin.out", ios::out|ios::app);
 
-	fprintf(output_file_stride,"%lld",(long long)numReadInstrsAnalyzed);
+	output_file_stride << numReadInstrsAnalyzed;
 	/* local read distribution */
 	cum = 0;
 	for(i = 0; i < MAX_DISTR; i++){
 		cum += localReadDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) || (i == 262144) ){
 			if(cum > 0)
-				fprintf(output_file_stride," %lld", (long long) cum);
+				output_file_stride << " " << cum;
 			else
-				fprintf(output_file_stride," %d", 0);
+				output_file_stride << " 0";
 		}
 		if(i == 262144)
 			break;
@@ -142,23 +144,23 @@ VOID stride_instr_interval_output(){
 		cum += globalReadDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) || (i == 262144) ){
 			if(cum > 0)
-				fprintf(output_file_stride," %lld", (long long) cum);
+				output_file_stride << " " << cum;
 			else	
-				fprintf(output_file_stride," %d", 0);
+				output_file_stride << " 0";
 		}
 		if(i == 262144)
 			break;
 	}
-	fprintf(output_file_stride," %lld",(long long)numWriteInstrsAnalyzed);
+	output_file_stride << " " << numWriteInstrsAnalyzed;
 	/* local write distribution */
 	cum = 0;
 	for(i = 0; i < MAX_DISTR; i++){
 		cum += localWriteDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) || (i == 262144) ){
 			if(cum > 0)
-				fprintf(output_file_stride," %lld", (long long) cum);
+				output_file_stride << " " << cum;
 			else	
-				fprintf(output_file_stride," %d", 0);
+				output_file_stride << " 0";
 		}
 		if(i == 262144)
 			break;
@@ -169,19 +171,19 @@ VOID stride_instr_interval_output(){
 		cum += globalWriteDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) ){
 			if(cum > 0)
-				fprintf(output_file_stride," %lld", (long long) cum);
+				output_file_stride << " " << cum;
 			else	
-				fprintf(output_file_stride," %d", 0);
+				output_file_stride << " 0";
 		}
 		if(i == 262144){
 			if(cum > 0)
-				fprintf(output_file_stride," %lld\n", (long long) cum);
+				output_file_stride << " " << cum << endl;
 			else	
-				fprintf(output_file_stride," %d\n", 0);
+				output_file_stride << " 0" << endl;
 			break;
 		}
 	}
-	fclose(output_file_stride);
+	output_file_stride.close();
 }
 
 VOID stride_instr_interval_reset(){
@@ -196,6 +198,8 @@ VOID stride_instr_interval_reset(){
 	numInstrsAnalyzed = 0;
 	numReadInstrsAnalyzed = 0;
 	numWriteInstrsAnalyzed = 0;
+        interval_ins_count = 0;
+        interval_ins_count_for_hpc_alignment = 0;
 }
 
 void stride_instr_interval(){
@@ -228,10 +232,10 @@ VOID reallocate_readArray_stride(){
 	numRead *= 2;
 
 	ptr = (ADDRINT*) realloc (instrRead, numRead * sizeof (ADDRINT));
-	if (ptr == (ADDRINT*) NULL) {
-		fprintf (stderr, "Not enough memory (in reallocate_readArray_stride)\n");
+	/*if (ptr == (ADDRINT*) NULL) {
+		cerr << "Not enough memory (in reallocate_readArray_stride)" << endl;
 		exit (1);
-	}
+	}*/
 	instrRead = ptr;
 }
 
@@ -253,10 +257,10 @@ VOID reallocate_writeArray_stride(){
 	numWrite *= 2;
 
 	ptr = (ADDRINT*) realloc (instrWrite, numWrite * sizeof (ADDRINT));
-	if (ptr == (ADDRINT*) NULL) {
-		fprintf (stderr, "Not enough memory (in reallocate_writeArray_stride)\n");
+	/*if (ptr == (ADDRINT*) NULL) {
+		cerr << "Not enough memory (in reallocate_writeArray_stride)" << endl;
 		exit (1);
-	}
+	}*/
 	instrWrite = ptr;
 }
 
@@ -269,10 +273,10 @@ void register_memRead_stride(ADDRINT ins_addr){
 
 		indices_memRead_size *= 2;
 		ptr = (ADDRINT*) realloc(indices_memRead, indices_memRead_size*sizeof(ADDRINT));
-		if(ptr == (ADDRINT*)NULL){
-			fprintf(stderr,"Could not allocate memory (realloc in register_readMem)!\n");
+		/*if(ptr == (ADDRINT*)NULL){
+			cerr << "Could not allocate memory (realloc in register_readMem)!" << endl;
 			exit(1);
-		}
+		}*/
 		indices_memRead = ptr;
 
 	}
@@ -290,10 +294,10 @@ void register_memWrite_stride(ADDRINT ins_addr){
 
 		indices_memWrite_size *= 2;
 		ptr = (ADDRINT*) realloc(indices_memWrite, indices_memWrite_size*sizeof(ADDRINT));
-		if(ptr == (ADDRINT*)NULL){
-			fprintf(stderr,"Could not allocate memory (realloc in register_writeMem)!\n");
+		/*if(ptr == (ADDRINT*)NULL){
+			cerr << "Could not allocate memory (realloc in register_writeMem)!" << endl;
 			exit(1);
-		}
+		}*/
 		indices_memWrite = ptr;
 
 	}
@@ -319,7 +323,7 @@ VOID readMem_stride(UINT32 index, ADDRINT effAddr, ADDRINT size){
 	}
 
 	localReadDistrib[stride]++;
-	instrRead[index] = effAddr + size;
+	instrRead[index] = effAddr + size - 1;
 
 	/* global stride */
 	/* avoid negative values, has to be done like this (not stride < 0 => stride = -stride (avoid problems with unsigned values)) */
@@ -332,7 +336,7 @@ VOID readMem_stride(UINT32 index, ADDRINT effAddr, ADDRINT size){
 	}
 
 	globalReadDistrib[stride]++;
-	lastReadAddr = effAddr + size;
+	lastReadAddr = effAddr + size - 1;
 }
 
 VOID writeMem_stride(UINT32 index, ADDRINT effAddr, ADDRINT size){
@@ -352,7 +356,7 @@ VOID writeMem_stride(UINT32 index, ADDRINT effAddr, ADDRINT size){
 	}
 
 	localWriteDistrib[stride]++;
-	instrWrite[index] = effAddr + size;
+	instrWrite[index] = effAddr + size - 1;
 
 	/* global stride */
 	/* avoid negative values, has to be doen like this (not stride < 0 => stride = -stride) */
@@ -365,7 +369,7 @@ VOID writeMem_stride(UINT32 index, ADDRINT effAddr, ADDRINT size){
 	}
 
 	globalWriteDistrib[stride]++;
-	lastWriteAddr = effAddr + size;
+	lastWriteAddr = effAddr + size - 1;
 }
 
 UINT32 stride_index_memRead1(ADDRINT a){
@@ -445,21 +449,21 @@ VOID fini_stride(INT32 code, VOID* v){
 	UINT64 cum;
 
 	if(interval_size == -1){
-		output_file_stride = fopen("stride_full_int_pin.out","w");
+		output_file_stride.open("stride_full_int_pin.out", ios::out|ios::trunc);
 	}
 	else{
-		output_file_stride = fopen("stride_phases_int_pin.out","a");
+		output_file_stride.open("stride_phases_int_pin.out", ios::out|ios::app);
 	}
-	fprintf(output_file_stride,"%lld",(long long)numReadInstrsAnalyzed);
+	output_file_stride << numReadInstrsAnalyzed;
 	/* local read distribution */
 	cum = 0;
 	for(i = 0; i < MAX_DISTR; i++){
 		cum += localReadDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) || (i == 262144) ){
 			if(cum > 0)
-				fprintf(output_file_stride," %lld", (long long) cum);
+				output_file_stride << " " << cum;
 			else
-				fprintf(output_file_stride," %d", 0);
+				output_file_stride << " 0";
 		}
 		if(i == 262144)
 			break;
@@ -470,23 +474,23 @@ VOID fini_stride(INT32 code, VOID* v){
 		cum += globalReadDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) || (i == 262144) ){
 			if(cum > 0)
-				fprintf(output_file_stride," %lld", (long long) cum);
+				output_file_stride << " " << cum;
 			else	
-				fprintf(output_file_stride," %d", 0);
+				output_file_stride << " 0";
 		}
 		if(i == 262144)
 			break;
 	}
-	fprintf(output_file_stride," %lld",(long long)numWriteInstrsAnalyzed);
+	output_file_stride << " " << numWriteInstrsAnalyzed;
 	/* local write distribution */
 	cum = 0;
 	for(i = 0; i < MAX_DISTR; i++){
 		cum += localWriteDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) || (i == 262144) ){
 			if(cum > 0)
-				fprintf(output_file_stride," %lld", (long long) cum);
+				output_file_stride << " " << cum;
 			else	
-				fprintf(output_file_stride," %d", 0);
+				output_file_stride << " 0";
 		}
 		if(i == 262144)
 			break;
@@ -497,18 +501,18 @@ VOID fini_stride(INT32 code, VOID* v){
 		cum += globalWriteDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) ){
 			if(cum > 0)
-				fprintf(output_file_stride," %lld", (long long) cum);
+				output_file_stride << " " << cum;
 			else	
-				fprintf(output_file_stride," %d", 0);
+				output_file_stride << " 0";
 		}
 		if(i == 262144){
 			if(cum > 0)
-				fprintf(output_file_stride," %lld\n", (long long) cum);
+				output_file_stride << " " << cum << endl;
 			else	
-				fprintf(output_file_stride," %d\n", 0);
+				output_file_stride << " 0" << endl;
 			break;
 		}
 	}
-	fprintf(output_file_stride,"number of instructions: %lld\n", total_ins_count);
-	fclose(output_file_stride);
+	output_file_stride << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_stride.close();
 }

@@ -16,8 +16,8 @@
 #include "mica_memfootprint.h"
 #include "mica_memreusedist.h"
 
-enum MODE { MODE_ALL, MODE_ILP, MODE_ILP_ONE, MODE_ITYPES, MODE_PPM, MODE_REG, MODE_STRIDE, MODE_MEMFOOTPRINT, MODE_MEMREUSEDIST, MODE_MYTYPE };
+enum MODE { MODE_ALL, MODE_ILP, MODE_ILP_ONE, MODE_ITYPES, MODE_PPM, MODE_REG, MODE_STRIDE, MODE_MEMFOOTPRINT, MODE_MEMREUSEDIST, MODE_CUSTOM };
 
-void setup_mica_log(FILE* *log);
+void setup_mica_log(ofstream *log);
 
-void read_config(FILE* log, INT64* interval_size, MODE* mode, UINT32* _win_size);
+void read_config(ofstream *log, INT64* interval_size, MODE* mode, UINT32* _ilp_win_size, UINT32* _block_size, UINT32* _page_size, char** _itypes_spec_file);

@@ -36,28 +36,31 @@ memNode* install(nlist** table, ADDRINT key){
 	np = table[index];
 
 	if(np == (nlist*)NULL) {
-		if((np = (nlist*)malloc(sizeof(nlist))) == (nlist*)NULL){
-			fprintf(stderr,"Not enough memory (in install)\n");
+		np = (nlist*)malloc(sizeof(nlist));
+		/*if((np = (nlist*)malloc(sizeof(nlist))) == (nlist*)NULL){
+			cerr << "Not enough memory (in install)" << endl;
 			exit(1);
-		}
+		}*/
 		table[index] = np;
 	}
 	else{
 		while(np->next != (nlist*)NULL){
 			np = np->next;	
 		}
-		if((np->next = (nlist*)malloc(sizeof(nlist))) == (nlist*)NULL){
-			fprintf(stderr,"Not enough memory (in install (2))\n");
+		np->next = (nlist*)malloc(sizeof(nlist));
+		/*if((np->next = (nlist*)malloc(sizeof(nlist))) == (nlist*)NULL){
+			cerr << "Not enough memory (in install (2))" << endl;
 			exit(1);
-		}
+		}*/
 		np = np->next;	
 	}
 	np->next = (nlist*)NULL;
 	np->id = key;
-	if((np->mem = (memNode*)malloc (sizeof(memNode))) == (memNode*)NULL){
-		fprintf(stderr,"Not enough memory (in install (3))\n");
+	np->mem = (memNode*)malloc (sizeof(memNode));
+	/*if((np->mem = (memNode*)malloc (sizeof(memNode))) == (memNode*)NULL){
+		cerr << "Not enough memory (in install (3))" << endl;
 		exit(1);
-	}
+	}*/
 	for(i = 0; i < MAX_MEM_ENTRIES; i++){
 		(np->mem)->timeAvailable[i] = 0;
 	}

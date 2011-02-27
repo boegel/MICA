@@ -16,9 +16,14 @@
 
 extern INT64 interval_size;
 extern INT64 interval_ins_count;
+extern INT64 interval_ins_count_for_hpc_alignment;
 extern INT64 total_ins_count;
+extern INT64 total_ins_count_for_hpc_alignment;
 
-FILE* output_file_memreusedist;
+extern UINT32 _block_size;
+UINT32 memreusedist_block_size;
+
+ofstream output_file_memreusedist;
 
 typedef struct stack_entry_type {
 	struct stack_entry_type* prev;
@@ -46,31 +51,6 @@ INT64 cold_refs;
 INT64 buckets[BUCKET_CNT];
 stack_entry* borderline_stack_entries[BUCKET_CNT];
 
-/*VOID print_stack(){
-
-	stack_entry* e = stack_top;
-	int index;
-
-	fprintf(stderr,"borderline_stack_entries: ");
-	for(index=0; index < BUCKET_CNT; index++)
-		fprintf(stderr,"[%d] 0x%x, ", index, (unsigned int)borderline_stack_entries[index]);
-	fprintf(stderr,"\n");
-
-	index = 0;
-	while(e != (stack_entry*)NULL){
-
-		fprintf(stderr,"   0x%x [a: 0x%x] (bucket: %d)", (unsigned int)e, (unsigned int)e->block_addr, (int)e->bucket);
-		if(borderline_stack_entries[index] == e){
-			fprintf(stderr," *\n");
-			index++;
-		}
-		else
-			fprintf(stderr,"\n");
-
-		e = e->prev;
-	}
-}*/
-
 /* initializing */
 void init_memreusedist(){
 	
@@ -94,15 +74,23 @@ void init_memreusedist(){
 	stack_top->next = NULL;
 	stack_top->prev = NULL;
 	stack_top->bucket = 0;
+
+	//borderline_stack_entries[0] = stack_top; // NO! First bucket contains two entries
+	// dummy entry as first borderline entry
+	borderline_stack_entries[0] = (stack_entry*)malloc(sizeof(stack_entry));
+	borderline_stack_entries[0]->block_addr = 0;
+	borderline_stack_entries[0]->bucket = -1;
+	borderline_stack_entries[0]->next = NULL;
+	borderline_stack_entries[0]->prev = NULL;
+	borderline_stack_entries[0]->bucket = 0;
+
 	stack_size = 0;
 
-	borderline_stack_entries[0] = stack_top;
-
-	//print_stack();
+        memreusedist_block_size = _block_size;
 
 	if(interval_size != -1){		
-		output_file_memreusedist = fopen("memreusedist_phases_int_pin.out","w");
-		fclose(output_file_memreusedist);
+		output_file_memreusedist.open("memreusedist_phases_int_pin.out", ios::out|ios::trunc);
+		output_file_memreusedist.close();
 	}
 }
 
@@ -115,18 +103,18 @@ ADDRINT memreusedist_instr_intervals(){
 
 	/* counting instructions is done in all_instr_intervals() */
 
-	return (ADDRINT)(total_ins_count % interval_size == 0);
+	return (ADDRINT)(interval_ins_count_for_hpc_alignment == interval_size);
 }
 
 VOID memreusedist_instr_interval_output(){
 	int i;
-	output_file_memreusedist = fopen("memreusedist_phases_int_pin.out","a");
-	fprintf(output_file_memreusedist, "%lld %lld", mem_ref_cnt, cold_refs);
+	output_file_memreusedist.open("memreusedist_phases_int_pin.out", ios::out|ios::app);
+	output_file_memreusedist << mem_ref_cnt << " " << cold_refs;
 	for(i=0; i < BUCKET_CNT; i++){
-		fprintf(output_file_memreusedist, " %lld", buckets[i]);
+		output_file_memreusedist << " " << buckets[i];
 	}
-	fprintf(output_file_memreusedist, "\n");
-	fclose(output_file_memreusedist);
+	output_file_memreusedist << endl;
+	output_file_memreusedist.close();
 }
 
 VOID memreusedist_instr_interval_reset(){
@@ -143,6 +131,7 @@ VOID memreusedist_instr_interval(){
 	memreusedist_instr_interval_output();
 	memreusedist_instr_interval_reset();
 	interval_ins_count = 0;
+	interval_ins_count_for_hpc_alignment = 0;
 }
 
 /* hash table support */
@@ -168,20 +157,22 @@ stack_entry** install(block_fast** table, ADDRINT key){
 	b = table[index];
 
 	if(b == (block_fast*)NULL) {
-		if((b = (block_fast*)malloc(sizeof(block_fast))) == (block_fast*)NULL){
-			fprintf(stderr,"Not enough memory (in install)\n");
+		b = (block_fast*)malloc(sizeof(block_fast));
+		/*if((b = (block_fast*)malloc(sizeof(block_fast))) == (block_fast*)NULL){
+			cerr << "Not enough memory (in install)" << endl;
 			exit(1);
-		}
+		}*/
 		table[index] = b;
 	}
 	else{
 		while(b->next != (block_fast*)NULL){
 			b = b->next;	
 		}
-		if((b->next = (block_fast*)malloc(sizeof(block_fast))) == (block_fast*)NULL){
-			fprintf(stderr,"Not enough memory (in install (2))\n");
+		b->next = (block_fast*)malloc(sizeof(block_fast));
+		/*if((b->next = (block_fast*)malloc(sizeof(block_fast))) == (block_fast*)NULL){
+			cerr << "Not enough memory (in install (2))" << endl;
 			exit(1);
-		}
+		}*/
 		b = b->next;	
 	}
 	b->next = (block_fast*)NULL;
@@ -190,6 +181,60 @@ stack_entry** install(block_fast** table, ADDRINT key){
 		b->stack_entries[i] = (stack_entry*)NULL;
 	}
 	return b->stack_entries;
+}
+
+VOID print_stack(stack_entry* top){
+
+	stack_entry* e;
+	int i;
+
+	e = top;
+	i = 0;
+	while(e != NULL){
+
+		fprintf(stderr, "[%d] 0x%llx, b: %d (next: 0x%llx, prev: 0x%llx)\n", i, (unsigned long long)e, e->bucket, (unsigned long long)e->next, (unsigned long long)e->prev);
+		i++;
+		e = e->prev;
+	}
+	fprintf(stderr, "------------------------\n");
+}
+
+VOID stack_sanity_check(stack_entry* top){
+
+	int cnt=0;
+	int bucket = 0;
+	stack_entry *e;
+
+	e = top;
+
+	if(top->next != NULL){
+		fprintf(stderr, "ERROR! top->next != NULL\n");
+		print_stack(top);
+		exit(-1);
+	}
+
+	while(e != NULL){
+
+		cnt++;
+
+		if(cnt > (2 << bucket)){
+			fprintf(stderr, "ERROR @ [%d]! Bucket too big (cnt: %d, bucket: %d, max. size: %d)\n", cnt-1, cnt, bucket, 2 << bucket);
+			print_stack(top);
+			exit(-1);
+		}
+
+		if(e->bucket != bucket){
+			fprintf(stderr, "ERROR @ [%d]! Bucket doesn't match @ 0x%llx (b: %d != %d)!\n", cnt-1, (unsigned long long)e, e->bucket, bucket);
+			print_stack(top);
+			exit(-1);
+		}
+
+		if(e == borderline_stack_entries[bucket])
+			bucket++;
+
+		e = e->prev;
+	}
+	//fprintf(stderr, "STACK ok!\n");
 }
 
 /* stack support */
@@ -201,34 +246,37 @@ VOID move_to_top_fast(stack_entry *e, ADDRINT a, stack_entry** top){
 	if(e != (stack_entry*)NULL){
 
 		/* check to see if we already are at top of stack */
-		if(e->next != (stack_entry*)NULL){
+		if(e != *top){
 
-			/* avoid referencing prev for bottom of stack */
-			if(e->prev != (stack_entry*)NULL){
+			// if entry touched is borderline entry, new borderline entry is the one above the touched one (i.e. ->next)
+			if(e->bucket > 0 && e == borderline_stack_entries[e->bucket]){
+				borderline_stack_entries[e->bucket] = borderline_stack_entries[e->bucket]->next;
+			}
+
+			// take entry out of stack, update entries above and below accordingly
+			if(e->prev != (stack_entry*)NULL){ // avoid referencing prev for bottom of stack
 				e->prev->next = e->next;
 			}
 			e->next->prev = e->prev;
 
 			// adjust all borderline entries above the entry touched (start with i=2 to avoid problems with too small stacks)
-			for(i=2; i < BUCKET_CNT && i < e->bucket; i++){
+			for(i=2; i < BUCKET_CNT && i <= e->bucket; i++){
 				borderline_stack_entries[i-1]->bucket++;
 				borderline_stack_entries[i-1] = borderline_stack_entries[i-1]->next;
-			}
-			// if entry touched is borderline entry, new borderline entry is the one above the touched one (i.e. ->next)
-			if(e == borderline_stack_entries[e->bucket-1]){
-				borderline_stack_entries[e->bucket-1] = borderline_stack_entries[e->bucket-1]->next;
 			}
 
 			// place new entry on top of LRU stack
 			e->prev = *top;
-			e->next = (stack_entry*)NULL;
-			(*top)->next = e;
-			borderline_stack_entries[0]->bucket++;
-			(*top)->bucket = 1;
-			borderline_stack_entries[0] = (*top);
+			e->next = (stack_entry*)NULL; // e will be the next top
+			(*top)->next = e; // current top will slide down
+			if(e != borderline_stack_entries[0]){
+				borderline_stack_entries[0]->bucket++; // borderline stack entry for first bucket moves to next bucket, unless it's the same as the borderline entry
+			}
+			//(*top)->bucket = 1; // current top slides into next bucket (INCORRECT, because first bucket contains top *and* previous top)
+			borderline_stack_entries[0] = (*top); // current top is borderline stack entry for first bucket
 
-			*top = e;
-			e->bucket = 0;
+			*top = e; // set new top of stack
+			e->bucket = 0; // set bucket for new top of stack
 
 		}
 		/* else: if top of stack was referenced again, nothing to do! */
@@ -246,7 +294,7 @@ VOID move_to_top_fast(stack_entry *e, ADDRINT a, stack_entry** top){
 		// adjust top of stack
 		(*top)->next = e;
 		borderline_stack_entries[0]->bucket++;
-		(*top)->bucket = 1;
+		//(*top)->bucket = 1; // current top slides into next bucket (INCORRECT, because first bucket contains top *and* previous top)
 		borderline_stack_entries[0] = (*top);
 
 		// set new entry as top of stack
@@ -256,7 +304,7 @@ VOID move_to_top_fast(stack_entry *e, ADDRINT a, stack_entry** top){
 		stack_size++;
 
 		// adjust bucket for borderline entries (except for very last bucket = overflow bucket)
-		for(i=2; i < BUCKET_CNT-1 && (1 << i) <= stack_size; i++){
+		for(i=2; i < BUCKET_CNT && (1 << i) <= stack_size; i++){
 			borderline_stack_entries[i-1]->bucket++;
 			borderline_stack_entries[i-1] = borderline_stack_entries[i-1]->next;
 		}
@@ -269,6 +317,7 @@ VOID move_to_top_fast(stack_entry *e, ADDRINT a, stack_entry** top){
 			}
 		}
 	}
+	//stack_sanity_check(*top);
 }
 
 /* determine reuse distance (= number of unique cache blocks referenced since last time this cache  was referenced) 
@@ -288,39 +337,41 @@ VOID memreusedist_memRead(ADDRINT effMemAddr, ADDRINT size){
 	stack_entry** chunk;
 	stack_entry* entry_for_addr;
 
-	/* D-stream (64-byte) cache  memory footprint */
+	/* D-stream (64-byte) cache memory footprint */
 
-	addr = effMemAddr >> 6;
-	endAddr = (effMemAddr + size) >> 6;
+	addr = effMemAddr >> memreusedist_block_size;
+	endAddr = (effMemAddr + size - 1) >> memreusedist_block_size;
 
-	for(a = addr; a <= endAddr; a++){
+        if(size > 0){
+                for(a = addr; a <= endAddr; a++){
 
-		upperAddr = a >> LOG_MAX_MEM_ENTRIES;
-		indexInChunk = a ^ (upperAddr << LOG_MAX_MEM_ENTRIES);
+                        upperAddr = a >> LOG_MAX_MEM_ENTRIES;
+                        indexInChunk = a ^ (upperAddr << LOG_MAX_MEM_ENTRIES);
 
-		chunk = lookup(hashTableCacheBlocks_fast, upperAddr);
-		if(chunk == (stack_entry**)NULL)
-			chunk = install(hashTableCacheBlocks_fast, upperAddr);
+                        chunk = lookup(hashTableCacheBlocks_fast, upperAddr);
+                        if(chunk == (stack_entry**)NULL)
+                                chunk = install(hashTableCacheBlocks_fast, upperAddr);
 
-		entry_for_addr = chunk[indexInChunk];
+                        entry_for_addr = chunk[indexInChunk];
 
-		/* determine reuse distance for this access (if it has been accessed before) */
-		INT64 b = det_reuse_dist_bucket(entry_for_addr);
+                        /* determine reuse distance for this access (if it has been accessed before) */
+                        INT64 b = det_reuse_dist_bucket(entry_for_addr);
 
-		if(b < 0)
-			cold_refs++;
-		else
-			buckets[b]++;
+                        if(b < 0)
+                                cold_refs++;
+                        else
+                                buckets[b]++;
 
-		/* adjust LRU stack */	
-		move_to_top_fast(entry_for_addr, a, &stack_top);
+                        /* adjust LRU stack */	
+                        move_to_top_fast(entry_for_addr, a, &stack_top);
 
-		/* update hash table for new cache blocks */
-		if(chunk[indexInChunk] == (stack_entry*)NULL)
-			chunk[indexInChunk] = stack_top;
+                        /* update hash table for new cache blocks */
+                        if(chunk[indexInChunk] == (stack_entry*)NULL)
+                                chunk[indexInChunk] = stack_top;
 
-		mem_ref_cnt++;
-	}
+                        mem_ref_cnt++;
+                }
+        }
 }
 
 VOID instrument_memreusedist(INS ins, VOID *v){
@@ -346,15 +397,15 @@ VOID fini_memreusedist(INT32 code, VOID* v){
 	int i;
 
 	if(interval_size == -1){
-		output_file_memreusedist = fopen("memreusedist_full_int_pin.out","w");
+		output_file_memreusedist.open("memreusedist_full_int_pin.out", ios::out|ios::trunc);
 	}
 	else{
-		output_file_memreusedist = fopen("memreusedist_phases_int_pin.out","a");
+		output_file_memreusedist.open("memreusedist_phases_int_pin.out", ios::out|ios::app);
 	}
-	fprintf(output_file_memreusedist, "%lld %lld", mem_ref_cnt, cold_refs);
+	output_file_memreusedist << mem_ref_cnt << " " << cold_refs;
 	for(i=0; i < BUCKET_CNT; i++){
-		fprintf(output_file_memreusedist, " %lld", buckets[i]);
+		output_file_memreusedist << " " << buckets[i];
 	}
-	fprintf(output_file_memreusedist,"\nnumber of instructions: %lld\n", total_ins_count);
-	fclose(output_file_memreusedist);
+        output_file_memreusedist << endl << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_memreusedist.close();
 }

@@ -5,7 +5,7 @@ CXXFLAGS ?= -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT)
 
 CXX=g++
 
-all: mica_v0-23
+all: mica
 
 mica_all.o: mica.h mica_all.h mica_all.cpp
 	$(CXX) -g -c $(CXXFLAGS) $(PIN_CXXFLAGS) mica_all.cpp -o mica_all.o
@@ -37,12 +37,12 @@ mica_memfootprint.o: mica.h mica_memfootprint.h mica_memfootprint.cpp
 mica_memreusedist.o: mica.h mica_memreusedist.h mica_memreusedist.cpp
 	$(CXX) -g -c $(CXXFLAGS) $(PIN_CXXFLAGS) mica_memreusedist.cpp -o mica_memreusedist.o
 
-mica_v0-23.o: mica.h mica_v0-23.cpp
-	$(CXX) -g -c $(CXXFLAGS) $(PIN_CXXFLAGS) mica_v0-23.cpp -o mica_v0-23.o
+mica.o: mica.h mica.cpp
+	$(CXX) -g -c $(CXXFLAGS) $(PIN_CXXFLAGS) mica.cpp -o mica.o
 
-mica_v0-23: mica.h mica_v0-23.o mica_all.o mica_init.o mica_utils.o mica_ilp.o mica_itypes.o mica_ppm.o mica_reg.o mica_stride.o mica_memfootprint.o mica_memreusedist.o
-	$(CXX) -g $(PIN_LDFLAGS) $(LINK_DEBUG) mica_v0-23.o mica_all.o mica_init.o mica_utils.o mica_ilp.o mica_itypes.o mica_ppm.o mica_reg.o mica_stride.o mica_memfootprint.o mica_memreusedist.o -o mica_v0-23 $(PIN_LPATHS) $(PIN_LIBS) $(DBG)
+mica: mica.h mica.o mica_all.o mica_init.o mica_utils.o mica_ilp.o mica_itypes.o mica_ppm.o mica_reg.o mica_stride.o mica_memfootprint.o mica_memreusedist.o
+	$(CXX) -g $(PIN_LDFLAGS) $(LINK_DEBUG) mica.o mica_all.o mica_init.o mica_utils.o mica_ilp.o mica_itypes.o mica_ppm.o mica_reg.o mica_stride.o mica_memfootprint.o mica_memreusedist.o -o mica.so $(PIN_LPATHS) $(PIN_LIBS) $(DBG)
 
 
 clean: 
-	rm -f *.o mica_v0-23 *pin*out mica*log*
+	rm -f *.o mica.so *pin*out mica*log*

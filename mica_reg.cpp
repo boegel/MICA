@@ -16,9 +16,11 @@
 
 extern INT64 interval_size;
 extern INT64 interval_ins_count;
+extern INT64 interval_ins_count_for_hpc_alignment;
 extern INT64 total_ins_count;
+extern INT64 total_ins_count_for_hpc_alignment;
 
-FILE* output_file_reg;
+ofstream output_file_reg;
 
 UINT64* opCounts; // array which keeps track of number-of-operands-per-instruction stats
 BOOL* regRef; // register references
@@ -36,32 +38,32 @@ void init_reg(){
 
 	/* allocate memory */
 	if((opCounts = (UINT64*) malloc(MAX_NUM_OPER * sizeof(UINT64))) == (UINT64*)NULL){
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	if((regRef = (BOOL*) malloc(MAX_NUM_REGS * sizeof(BOOL))) == (BOOL*)NULL){
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	if((PCTable = (INT64*) malloc(MAX_NUM_REGS * sizeof(INT64))) == (INT64*)NULL){
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	if((regUseCnt = (INT64*) malloc(MAX_NUM_REGS * sizeof(INT64))) == (INT64*)NULL){
-		fprintf(stderr,"Could not allocate memory\n");
+	        cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	if((regUseDistr = (INT64*) malloc(MAX_REG_USE * sizeof(INT64))) == (INT64*)NULL){
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	if((regAgeDistr = (INT64*) malloc(MAX_COMM_DIST * sizeof(INT64))) == (INT64*)NULL){
-		fprintf(stderr,"Could not allocate memory\n");
+	        cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
@@ -82,8 +84,8 @@ void init_reg(){
 	}
 
 	if(interval_size != -1){		
-		output_file_reg = fopen("reg_phases_int_pin.out","w");
-		fclose(output_file_reg);
+		output_file_reg.open("reg_phases_int_pin.out", ios::out|ios::trunc);
+		output_file_reg.close();
 	}
 }
 
@@ -98,7 +100,7 @@ VOID readRegOp_reg(UINT32 regId){
 	if(age >= MAX_COMM_DIST){
 		age = MAX_COMM_DIST - 1; // trim if needed
 	}
-	assert(age >= 0);
+	//assert(age >= 0);
 	regAgeDistr[age]++;
 
 	/* register usage */
@@ -116,7 +118,7 @@ VOID writeRegOp_reg(UINT32 regId){
 		num = regUseCnt[regId];
 		if(num >= MAX_REG_USE) // trim if needed
 			num = MAX_REG_USE - 1;
-		assert(num >= 0);
+		//assert(num >= 0);
 		regUseDistr[num]++;
 	}
 
@@ -162,13 +164,13 @@ ADDRINT reg_instr_intervals(VOID* _e) {
 
 	opCounts[e->regOpCnt]++;
 
-	return (ADDRINT) (total_ins_count % interval_size == 0);
+	return (ADDRINT) (interval_ins_count_for_hpc_alignment == interval_size);
 }
 
 VOID reg_instr_interval_output(){
 	int i;
 
-	output_file_reg = fopen("reg_phases_int_pin.out","a");
+	output_file_reg.open("reg_phases_int_pin.out", ios::out|ios::app);
 
 	UINT64 totNumOps = 0;
 	UINT64 num;
@@ -178,7 +180,7 @@ VOID reg_instr_interval_output(){
 	for(i = 1; i < MAX_NUM_OPER; i++){
 		totNumOps += opCounts[i]*i;
 	}
-	fprintf(output_file_reg,"%lld %lld",(long long)interval_size, (long long)totNumOps); 
+	output_file_reg << interval_size << " " << totNumOps; 
 
 	/* average degree of use */
 	num = 0;
@@ -186,12 +188,12 @@ VOID reg_instr_interval_output(){
 	for(i = 0; i < MAX_REG_USE; i++){
 		num += regUseDistr[i];
 	}
-	fprintf(output_file_reg," %lld",(long long)num);
+	output_file_reg << " " << num;
 	num = 0;
 	for(i = 0; i < MAX_REG_USE; i++){
 		num += i * regUseDistr[i];
 	}
-	fprintf(output_file_reg," %lld",(long long)num); 
+	output_file_reg << " " << num; 
 
 	/* register dependency distributions */
 	num = 0;
@@ -199,17 +201,17 @@ VOID reg_instr_interval_output(){
 	for(i = 0; i < MAX_COMM_DIST; i++){
 		num += regAgeDistr[i];
 	}
-	fprintf(output_file_reg," %lld",(long long)num);
+	output_file_reg << " " << num;
 	num = 0;
 	for(i = 0; i < MAX_COMM_DIST; i++){
 		num += regAgeDistr[i];
 		if( (i == 1) || (i == 2) || (i == 4) || (i == 8) || (i == 16) || (i == 32) || (i == 64)){
-			fprintf(output_file_reg," %lld",(long long)num);
+			output_file_reg << " " << num;
 		}
 	}
-	fprintf(output_file_reg,"\n");
+	output_file_reg << endl;
 
-	fclose(output_file_reg);
+	output_file_reg.close();
 }
 
 VOID reg_instr_interval_reset(){
@@ -239,6 +241,7 @@ VOID reg_instr_interval() {
 	reg_instr_interval_output();
 	reg_instr_interval_reset();
 	interval_ins_count = 0;
+	interval_ins_count_for_hpc_alignment = 0;
 
 }
 
@@ -250,14 +253,12 @@ VOID instrument_reg(INS ins, ins_buffer_entry* e){
 
 	if(!e->setRead){
 
-		//fprintf(stderr, " NEW instruction @ 0x%x, with %d reg reads and %d reg writes\n", e->insAddr, e->regReadCnt, e->regWriteCnt);
-
 		maxNumRegsCons = INS_MaxNumRRegs(ins); // maximum number of register consumations (reads)
 
 		regReadCnt = 0;	
 		for(i = 0; i < maxNumRegsCons; i++){ // finding all register operands which are read
 			reg = INS_RegR(ins,i);
-			assert(((UINT32)reg) < MAX_NUM_REGS);
+			//assert(((UINT32)reg) < MAX_NUM_REGS);
 			/* only consider valid general-purpose registers (any bit-width) and floating-point registers,
 			 * i.e. exlude branch, segment and pin registers, among others */
 			if(REG_valid(reg) && (REG_is_fr(reg) || REG_is_mm(reg) || REG_is_xmm(reg) || REG_is_gr(reg) || REG_is_gr8(reg) || REG_is_gr16(reg) || REG_is_gr32(reg) || REG_is_gr64(reg))){
@@ -266,15 +267,16 @@ VOID instrument_reg(INS ins, ins_buffer_entry* e){
 		}
 
 		e->regReadCnt = regReadCnt;
-		if((e->regsRead = (REG*)malloc(regReadCnt*sizeof(REG))) == (REG*)NULL){
-			fprintf(stderr,"ERROR: Could not allocate regsRead memory for ins 0x%x\n", e->insAddr);
+		e->regsRead = (REG*)malloc(regReadCnt*sizeof(REG));
+		/*if((e->regsRead = (REG*)malloc(regReadCnt*sizeof(REG))) == (REG*)NULL){
+			cerr << "ERROR: Could not allocate regsRead memory for ins 0x" << hex << unsigned int)e->insAddr << endl;
 			exit(1);
-		}
+		}*/
 	
 		regReadCnt = 0;	
 		for(i = 0; i < maxNumRegsCons; i++){ // finding all register operands which are read
 			reg = INS_RegR(ins,i);
-			assert(((UINT32)reg) < MAX_NUM_REGS);
+			//assert(((UINT32)reg) < MAX_NUM_REGS);
 			/* only consider valid general-purpose registers (any bit-width) and floating-point registers,
 			 * i.e. exlude branch, segment and pin registers, among others */
 			if(REG_valid(reg) && (REG_is_fr(reg) || REG_is_mm(reg) || REG_is_xmm(reg) || REG_is_gr(reg) || REG_is_gr8(reg) || REG_is_gr16(reg) || REG_is_gr32(reg) || REG_is_gr64(reg))){
@@ -291,7 +293,7 @@ VOID instrument_reg(INS ins, ins_buffer_entry* e){
 		for(i=0; i < maxNumRegsProd; i++){
 
 			reg = INS_RegW(ins, i);
-			assert(((UINT32)reg) < MAX_NUM_REGS);
+			//assert(((UINT32)reg) < MAX_NUM_REGS);
 			/* only consider valid general-purpose registers (any bit-width) and floating-point registers,
 			 * i.e. exlude branch, segment and pin registers, among others */
 			if(REG_valid(reg) && (REG_is_fr(reg) || REG_is_mm(reg) || REG_is_xmm(reg) || REG_is_gr(reg) || REG_is_gr8(reg) || REG_is_gr16(reg) || REG_is_gr32(reg) || REG_is_gr64(reg))){
@@ -300,16 +302,17 @@ VOID instrument_reg(INS ins, ins_buffer_entry* e){
 		}
 		
 		e->regWriteCnt = regWriteCnt;
-		if((e->regsWritten = (REG*)malloc(regWriteCnt*sizeof(REG))) == (REG*)NULL){
-			fprintf(stderr,"ERROR: Could not allocate regsRead memory for ins 0x%x\n", e->insAddr);
+		e->regsWritten = (REG*)malloc(regWriteCnt*sizeof(REG));
+		/*if((e->regsWritten = (REG*)malloc(regWriteCnt*sizeof(REG))) == (REG*)NULL){
+			cerr << "ERROR: Could not allocate regsRead memory for ins 0x" << hex << (unsigned int)e->insAddr << endl;
 			exit(1);
-		}
+		}*/
 
 		regWriteCnt = 0;
 		for(i=0; i < maxNumRegsProd; i++){
 
 			reg = INS_RegW(ins, i);
-			assert(((UINT32)reg) < MAX_NUM_REGS);
+			//assert(((UINT32)reg) < MAX_NUM_REGS);
 			/* only consider valid general-purpose registers (any bit-width) and floating-point registers,
 			 * i.e. exlude branch, segment and pin registers, among others */
 			if(REG_valid(reg) && (REG_is_fr(reg) || REG_is_mm(reg) || REG_is_xmm(reg) || REG_is_gr(reg) || REG_is_gr8(reg) || REG_is_gr16(reg) || REG_is_gr32(reg) || REG_is_gr64(reg))){
@@ -328,10 +331,10 @@ VOID instrument_reg(INS ins, ins_buffer_entry* e){
 			if(INS_OperandIsReg(ins,i))
 				regOpCnt++;
 		}
-		if(regOpCnt >= MAX_NUM_OPER){
-			fprintf(stderr,"BOOM! -> MAX_NUM_OPER is exceeded! (%u)\n", regOpCnt);
+		/*if(regOpCnt >= MAX_NUM_OPER){
+			cerr << "BOOM! -> MAX_NUM_OPER is exceeded! (" << regOpCnt << ")" << endl;
 			exit(1);
-		}
+		}*/
 		e->regOpCnt = regOpCnt;
 		e->setRegOpCnt = true;
 	}
@@ -350,12 +353,12 @@ VOID instrument_reg(INS ins, ins_buffer_entry* e){
 VOID fini_reg(INT32 code, VOID* v){
 
 	if(interval_size == -1){
-		output_file_reg = fopen("reg_full_int_pin.out","w");
-		fprintf(output_file_reg,"%lld",(long long)total_ins_count); 
+		output_file_reg.open("reg_full_int_pin.out", ios::out|ios::trunc);
+	        output_file_reg << total_ins_count; 
 	}
 	else{
-		output_file_reg = fopen("reg_phases_int_pin.out","a");
-		fprintf(output_file_reg,"%lld",(long long)interval_ins_count); 
+		output_file_reg.open("reg_phases_int_pin.out", ios::out|ios::app);
+		output_file_reg << interval_ins_count; 
 	}
 
 	int i;
@@ -366,7 +369,7 @@ VOID fini_reg(INT32 code, VOID* v){
 	for(i = 1; i < MAX_NUM_OPER; i++){
 		totNumOps += opCounts[i]*i;
 	}
-	fprintf(output_file_reg," %lld", (long long)totNumOps); 
+	output_file_reg << " " << totNumOps; 
 
 	// ** average degree of use **
 	num = 0;
@@ -374,12 +377,12 @@ VOID fini_reg(INT32 code, VOID* v){
 	for(i = 0; i < MAX_REG_USE; i++){
 		num += regUseDistr[i];
 	}
-	fprintf(output_file_reg," %lld", (long long)num);
+	output_file_reg << " " << num;
 	num = 0;
 	for(i = 0; i < MAX_REG_USE; i++){
 		num += i * regUseDistr[i];
 	}
-	fprintf(output_file_reg," %lld", (long long)num); 
+	output_file_reg << " " << num; 
 
 	// ** register dependency distributions **
 	num = 0;
@@ -387,15 +390,15 @@ VOID fini_reg(INT32 code, VOID* v){
 	for(i = 0; i < MAX_COMM_DIST; i++){
 		num += regAgeDistr[i];
 	}
-	fprintf(output_file_reg," %lld",(long long)num);
+	output_file_reg << " " << num;
 	num = 0;
 	for(i = 0; i < MAX_COMM_DIST; i++){
 		num += regAgeDistr[i];
 		if( (i == 1) || (i == 2) || (i == 4) || (i == 8) || (i == 16) || (i == 32) || (i == 64)){
-			fprintf(output_file_reg," %lld",(long long)num);
+			output_file_reg << " " << num;
 		}
 	}
-	fprintf(output_file_reg,"\n");
-	fprintf(output_file_reg, "number of instructions: %lld\n", total_ins_count);
-	fclose(output_file_reg);
+	output_file_reg << endl;
+	output_file_reg << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_reg.close();
 }

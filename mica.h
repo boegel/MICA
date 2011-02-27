@@ -8,7 +8,10 @@
  */
 
 /* standard library includes */
-#include <stdio.h>
+//#include <stdio.h>
+#include <iostream>
+#include <fstream>
+using namespace std;
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -19,9 +22,9 @@
 #ifndef MICA
 
 #define MICA
-#define LOG_MSG(str, a...) fprintf(log, str, ##a); fflush(log);
-#define ERROR(str, a...) fprintf(stderr, str, ##a);
-#define DEBUG_MSG(str, a...) fprintf(stderr, str, ##a);
+//#define LOG_MSG(str, a...) fprintf(log, str, ##a); fflush(log);
+//#define ERROR(str, a...) fprintf(stderr, str, ##a);
+//#define DEBUG_MSG(str, a...) fprintf(stderr, str, ##a);
 
 /* *** defines *** */
 

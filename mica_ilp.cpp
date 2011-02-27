@@ -13,6 +13,9 @@
 #include "mica_utils.h"
 #include "mica_ilp.h"
 
+#include <iostream>
+using namespace std;
+
 #define ILP_WIN_SIZE_CNT 4
 
 const UINT32 win_sizes[ILP_WIN_SIZE_CNT] = {32, 64, 128, 256};
@@ -20,9 +23,13 @@ const UINT32 win_sizes[ILP_WIN_SIZE_CNT] = {32, 64, 128, 256};
 extern UINT32 _ilp_win_size;
 UINT32 win_size;
 
+extern UINT32 _block_size;
+UINT32 ilp_block_size;
+
 /* buffer settings */
 
-#define ILP_BUFFER_SIZE 256
+//#define ILP_BUFFER_SIZE 256
+#define ILP_BUFFER_SIZE 200
 
 /* buffer variables */
 
@@ -50,9 +57,11 @@ VOID fini_ilp_buffering_one();
 
 extern INT64 interval_size;
 extern INT64 interval_ins_count;
+extern INT64 interval_ins_count_for_hpc_alignment;
 extern INT64 total_ins_count;
-FILE* output_file_ilp_one;
-FILE* output_file_ilp_all;
+extern INT64 total_ins_count_for_hpc_alignment;
+ofstream output_file_ilp_one;
+ofstream output_file_ilp_all;
 
 INT32 size_pow_all_times_all;
 INT64 index_all_times_all;
@@ -103,10 +112,11 @@ void init_ilp_one(){
 	init_ilp_buffering();
 
 	win_size = _ilp_win_size;
+        ilp_block_size = _block_size;
 
 	size_pow_times = 10;
 	if((all_times = (UINT64*)malloc((1 << size_pow_times) * sizeof(UINT64))) == (UINT64*)NULL){
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 	index_all_times = 1; // don't use first element of all_times
@@ -120,7 +130,7 @@ void init_ilp_one(){
 	}
 
 	if((executionProfile = (UINT64*)malloc(win_size*sizeof(UINT64))) == (UINT64*)NULL){
-		fprintf(stderr,"Not enough memory (in main)\n");
+		cerr << "Not enough memory (in main)" << endl;
 		exit(1);
 	}
 
@@ -130,9 +140,13 @@ void init_ilp_one(){
 	issueTime = 0;
 
 	if(interval_size != -1){
+                if(interval_size % ILP_BUFFER_SIZE != 0){
+                        cerr << "ERROR! Interval size is not a multiple of ILP buffer size. (" << interval_size << " vs " << ILP_BUFFER_SIZE << ")" << endl;
+                        exit(-1);
+                }
 		sprintf(filename,"ilp-win%d_phases_int_pin.out", win_size);
-		output_file_ilp_one = fopen(filename,"w");
-		fclose(output_file_ilp_one);
+		output_file_ilp_one.open(filename, ios::out|ios::trunc);
+		output_file_ilp_one.close();
 	}
 }
 
@@ -144,7 +158,7 @@ void increase_size_all_times_one(){
 
 	ptr = (UINT64*)realloc(all_times, (1 << size_pow_times)*sizeof(UINT64));
 	if(ptr == (UINT64*)NULL){
-		fprintf(stderr,"Could not allocate memory (realloc)!\n");
+		cerr << "Could not allocate memory (realloc)!" << endl;
 		exit(1);
 	}
 	all_times = ptr;
@@ -174,7 +188,7 @@ VOID ilp_instr_one(){
 			windowHead = (windowHead + 1) % win_size_const;
 			reordered++;
 		}
-		assert(reordered != 0);
+		//assert(reordered != 0);
 	}
 
 	/* reset issue times */
@@ -196,18 +210,17 @@ VOID ilp_instr_intervals_one(){
 
 	ilp_instr_one();
 
-	if(interval_ins_count == interval_size){
+	if(interval_ins_count_for_hpc_alignment == interval_size){
 
 		char filename[100];
 		sprintf(filename,"ilp-win%d_phases_int_pin.out", win_size);
-		output_file_ilp_one = fopen(filename,"a");
+		output_file_ilp_one.open(filename, ios::out|ios::app);
 
-		fprintf(output_file_ilp_one,"%lld",(long long)interval_size);
-		fprintf(output_file_ilp_one," %lld",(long long)cpuClock_interval);
-		fprintf(output_file_ilp_one,"\n");
+		output_file_ilp_one << interval_size << " " << cpuClock_interval << endl;
 
 		/* reset */
 		interval_ins_count = 0;
+		interval_ins_count_for_hpc_alignment = 0;
 
 		cpuClock_interval = 0;
 
@@ -215,10 +228,11 @@ VOID ilp_instr_intervals_one(){
 		size_pow_times = 10;
 
 		free(all_times);
-		if((all_times = (UINT64*)malloc((1 << size_pow_times) * sizeof(UINT64))) == (UINT64*)NULL){
+		all_times = (UINT64*)malloc((1 << size_pow_times) * sizeof(UINT64));
+		/*if((all_times = (UINT64*)malloc((1 << size_pow_times) * sizeof(UINT64))) == (UINT64*)NULL){
 			fprintf(stderr,"Could not allocate memory for all_times\n");
 			exit(1);
-		}
+		}*/
 		index_all_times = 1;
 
 		nlist* np;
@@ -234,7 +248,7 @@ VOID ilp_instr_intervals_one(){
 			memAddressesTable[i] = (nlist*) NULL;
 		}
 
-		fclose(output_file_ilp_one);
+		output_file_ilp_one.close();
 	}
 }
 
@@ -288,22 +302,24 @@ VOID readMem_ilp_one(ADDRINT effAddr, ADDRINT size){
 	ADDRINT a;
 	ADDRINT upperMemAddr, indexInChunk;
 	memNode* chunk = (memNode*)NULL;
-	ADDRINT shiftedAddr = effAddr >> 5;
-	ADDRINT shiftedEndAddr = (effAddr+size) >> 5;
+	ADDRINT shiftedAddr = effAddr >> ilp_block_size;
+	ADDRINT shiftedEndAddr = (effAddr + size - 1) >> ilp_block_size;
 
-	for(a = shiftedAddr; a <= shiftedEndAddr; a++){
-		upperMemAddr = a >> LOG_MAX_MEM_ENTRIES;
-		indexInChunk = a ^ (upperMemAddr << LOG_MAX_MEM_ENTRIES);
+        if(size > 0){
+                for(a = shiftedAddr; a <= shiftedEndAddr; a++){
+                        upperMemAddr = a >> LOG_MAX_MEM_ENTRIES;
+                        indexInChunk = a ^ (upperMemAddr << LOG_MAX_MEM_ENTRIES);
 
-		chunk = lookup(memAddressesTable, upperMemAddr);
-		if(chunk == (memNode*)NULL)
-			chunk = install(memAddressesTable, upperMemAddr);
+                        chunk = lookup(memAddressesTable, upperMemAddr);
+                        if(chunk == (memNode*)NULL)
+                                chunk = install(memAddressesTable, upperMemAddr);
 
-		assert(indexInChunk < MAX_MEM_ENTRIES);
-		assert(chunk->timeAvailable[indexInChunk] < (1 << size_pow_times));
-		if(all_times[chunk->timeAvailable[indexInChunk]] > issueTime)
-			issueTime = all_times[chunk->timeAvailable[indexInChunk]];
-	}
+                        //assert(indexInChunk < MAX_MEM_ENTRIES);
+                        //assert(chunk->timeAvailable[indexInChunk] < (1 << size_pow_times));
+                        if(all_times[chunk->timeAvailable[indexInChunk]] > issueTime)
+                                issueTime = all_times[chunk->timeAvailable[indexInChunk]];
+                }
+        }
 }
 
 VOID writeMem_ilp_one(ADDRINT effAddr, ADDRINT size){
@@ -311,27 +327,29 @@ VOID writeMem_ilp_one(ADDRINT effAddr, ADDRINT size){
 	ADDRINT a;
 	ADDRINT upperMemAddr, indexInChunk;
 	memNode* chunk = (memNode*)NULL;
-	ADDRINT shiftedAddr = effAddr >> 5;
-	ADDRINT shiftedEndAddr = (effAddr+size) >> 5;
+	ADDRINT shiftedAddr = effAddr >> ilp_block_size;
+	ADDRINT shiftedEndAddr = (effAddr + size - 1) >> ilp_block_size;
 
-	for(a = shiftedAddr; a <= shiftedEndAddr; a++){
-		upperMemAddr = a >> LOG_MAX_MEM_ENTRIES;
-		indexInChunk = a ^ (upperMemAddr << LOG_MAX_MEM_ENTRIES);
+        if(size > 0){
+                for(a = shiftedAddr; a <= shiftedEndAddr; a++){
+                        upperMemAddr = a >> LOG_MAX_MEM_ENTRIES;
+                        indexInChunk = a ^ (upperMemAddr << LOG_MAX_MEM_ENTRIES);
 
-		chunk = lookup(memAddressesTable,upperMemAddr);
-		if(chunk == (memNode*)NULL)
-			chunk = install(memAddressesTable,upperMemAddr);
+                        chunk = lookup(memAddressesTable,upperMemAddr);
+                        if(chunk == (memNode*)NULL)
+                                chunk = install(memAddressesTable,upperMemAddr);
 
-		assert(indexInChunk < MAX_MEM_ENTRIES);
-		if(chunk->timeAvailable[indexInChunk] == 0){
-			index_all_times++;
-			if(index_all_times >= (1 << size_pow_times))
-				increase_size_all_times_one();
-			chunk->timeAvailable[indexInChunk] = index_all_times;
-		}
-		assert(chunk->timeAvailable[indexInChunk] < (1 << size_pow_times));
-		all_times[chunk->timeAvailable[indexInChunk]] = issueTime + 1;
-	}
+                        //assert(indexInChunk < MAX_MEM_ENTRIES);
+                        if(chunk->timeAvailable[indexInChunk] == 0){
+                                index_all_times++;
+                                if(index_all_times >= (1 << size_pow_times))
+                                        increase_size_all_times_one();
+                                chunk->timeAvailable[indexInChunk] = index_all_times;
+                        }
+                        //assert(chunk->timeAvailable[indexInChunk] < (1 << size_pow_times));
+                        all_times[chunk->timeAvailable[indexInChunk]] = issueTime + 1;
+                }
+        }
 }
 
 /* instrumenting (instruction level) */
@@ -405,19 +423,18 @@ VOID fini_ilp_one(INT32 code, VOID* v){
 
 	if(interval_size == -1){
 		sprintf(filename,"ilp-win%d_full_int_pin.out", win_size);
-		output_file_ilp_one = fopen(filename,"w");
-		fprintf(output_file_ilp_one,"%lld",(long long)total_ins_count);
+		output_file_ilp_one.open(filename, ios::out|ios::trunc);
+		output_file_ilp_one << total_ins_count;
 	}
 	else{
 		sprintf(filename,"ilp-win%d_phases_int_pin.out", win_size);
-		output_file_ilp_one = fopen(filename,"a");
-		fprintf(output_file_ilp_one,"%lld",(long long)interval_ins_count);
+		output_file_ilp_one.open(filename, ios::out|ios::app);
+		output_file_ilp_one << interval_ins_count;
 	}
-	fprintf(output_file_ilp_one," %lld",(long long)cpuClock_interval);
+	output_file_ilp_one << " " << cpuClock_interval << endl;
 
-	fprintf(output_file_ilp_one,"\n");
-	fprintf(output_file_ilp_one,"number of instructions: %lld\n", total_ins_count);
-	fclose(output_file_ilp_one);
+	output_file_ilp_one << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_ilp_one.close();
 }
 
 /***************************************
@@ -435,11 +452,13 @@ void init_ilp_all(){
 	size_pow_all_times_all = 10;
 	for(i=0; i < ILP_WIN_SIZE_CNT; i++){
 		if((all_times_all[i] = (UINT64*)malloc((1 << size_pow_all_times_all) * sizeof(UINT64))) == (UINT64*)NULL){
-			fprintf(stderr,"Could not allocate memory\n");
+			cerr << "Could not allocate memory" << endl;
 			exit(1);
 		}
 	}
 	index_all_times_all = 1; // don't use first element of all_times_all
+
+        ilp_block_size = _block_size;
 
 	for(j=0; j < ILP_WIN_SIZE_CNT; j++){ 
 		windowHead_all[j] = 0;
@@ -451,7 +470,7 @@ void init_ilp_all(){
 		}
 
 		if((executionProfile_all[j] = (UINT64*)malloc(win_sizes[j]*sizeof(UINT64))) == (UINT64*)NULL){
-			fprintf(stderr,"Not enough memory (in main)\n");
+			cerr << "Not enough memory (in main)" << endl;
 			exit(1);
 		}
 
@@ -462,8 +481,12 @@ void init_ilp_all(){
 	}
 
 	if(interval_size != -1){
-		output_file_ilp_all = fopen("ilp_phases_int_pin.out","w");
-		fclose(output_file_ilp_all);
+                if(interval_size % ILP_BUFFER_SIZE != 0){
+                        cerr << "ERROR! Interval size is not a multiple of ILP buffer size. (" << interval_size << " vs " << ILP_BUFFER_SIZE << ")" << endl;
+                        exit(-1);
+                }
+		output_file_ilp_all.open("ilp_phases_int_pin.out", ios::out|ios::trunc);
+		output_file_ilp_all.close();
 	}
 }
 
@@ -476,7 +499,7 @@ void increase_size_all_times_all(){
 	for(i=0; i < ILP_WIN_SIZE_CNT; i++){
 		ptr = (UINT64*)realloc(all_times_all[i],(1 << size_pow_all_times_all)*sizeof(UINT64));
 		if(ptr == (UINT64*)NULL){
-			fprintf(stderr,"Could not allocate memory (realloc)!\n");
+			cerr << "Could not allocate memory (realloc)!" << endl;
 			exit(1);
 		}
 		all_times_all[i] = ptr;
@@ -497,21 +520,21 @@ VOID ilp_instr_all(){
 		windowTail_all[i] = (windowTail_all[i] + 1) % win_sizes[i];
 	
 		/* if instruction window (issue buffer) full */
-		if(windowHead_all[i] == windowTail_all[i]){
-			cpuClock_all[i]++;
-			cpuClock_interval_all[i]++;
-			reordered = 0;
-			/* remove all instructions which are done from beginning of window, 
-			 * until an instruction comes along which is not ready yet:
-			 * -> check executionProfile_all to see which instructions are done
-			 * -> commit maximum win_size instructions (i.e. stop when issue buffer is empty)
-			 */
-			while((executionProfile_all[i][windowHead_all[i]] < cpuClock_all[i]) && (reordered < win_sizes[i])) {
-				windowHead_all[i] = (windowHead_all[i] + 1) % win_sizes[i];
-				reordered++;
-			}
-			assert(reordered != 0);
-		}
+                if(windowHead_all[i] == windowTail_all[i]){
+                        cpuClock_all[i]++;
+                        cpuClock_interval_all[i]++;
+                        reordered = 0;
+                        /* remove all instructions which are done from beginning of window, 
+                         * until an instruction comes along which is not ready yet:
+                         * -> check executionProfile_all to see which instructions are done
+                         * -> commit maximum win_size instructions (i.e. stop when issue buffer is empty)
+                         */
+                        while((executionProfile_all[i][windowHead_all[i]] < cpuClock_all[i]) && (reordered < win_sizes[i])) {
+                                windowHead_all[i] = (windowHead_all[i] + 1) % win_sizes[i];
+                                reordered++;
+                        }
+                        //assert(reordered != 0);
+                }
 	
 		/* reset issue times */
 		issueTime_all[i] = 0;
@@ -533,17 +556,18 @@ VOID ilp_instr_intervals_all(){
 
 	/* counting instructions is done in all_instr_intervals() */
 
-	if(interval_ins_count == interval_size){
+	if(interval_ins_count_for_hpc_alignment == interval_size){
 
-		output_file_ilp_all = fopen("ilp_phases_int_pin.out","a");
+		output_file_ilp_all.open("ilp_phases_int_pin.out", ios::out|ios::app);
 
-		fprintf(output_file_ilp_all,"%lld",(long long)interval_ins_count);
+		output_file_ilp_all << interval_ins_count;
 		for(i = 0; i < ILP_WIN_SIZE_CNT; i++)
-			fprintf(output_file_ilp_all," %lld",(long long)cpuClock_interval_all[i]);
-		fprintf(output_file_ilp_all,"\n");
+			output_file_ilp_all << " " << cpuClock_interval_all[i];
+		output_file_ilp_all << endl;
 
 		/* reset */
 		interval_ins_count = 0;
+		interval_ins_count_for_hpc_alignment = 0;
 
 		for(i = 0; i < ILP_WIN_SIZE_CNT; i++)
 			cpuClock_interval_all[i] = 0;
@@ -552,10 +576,11 @@ VOID ilp_instr_intervals_all(){
 		size_pow_all_times_all = 10;
 		for(i = 0; i < ILP_WIN_SIZE_CNT; i++){
 			free(all_times_all[i]);
-			if((all_times_all[i] = (UINT64*)malloc((1 << size_pow_all_times_all) * sizeof(UINT64))) == (UINT64*)NULL){
+			all_times_all[i] = (UINT64*)malloc((1 << size_pow_all_times_all) * sizeof(UINT64));
+			/*if((all_times_all[i] = (UINT64*)malloc((1 << size_pow_all_times_all) * sizeof(UINT64))) == (UINT64*)NULL){
 				fprintf(stderr,"Could not allocate memory for all_times_all[%d]\n", i);
 				exit(1);
-			}
+			}*/
 		}
 		index_all_times_all = 1;
 
@@ -572,7 +597,7 @@ VOID ilp_instr_intervals_all(){
 			memAddressesTable_all[i] = (nlist*) NULL;
 		}
 
-		fclose(output_file_ilp_all);
+		output_file_ilp_all.close();
 	}
 
 	ilp_instr_all();
@@ -591,7 +616,6 @@ VOID checkIssueTime_all(){
 VOID readRegOp_ilp_all(UINT32 regId){
 	int i;
 
-	
 	for(i=0; i < ILP_WIN_SIZE_CNT; i++){
 
 		if(timeAvailable_all[i][regId] > issueTime_all[i])
@@ -602,9 +626,9 @@ VOID readRegOp_ilp_all(UINT32 regId){
 VOID writeRegOp_ilp_all(UINT32 regId){
 	int i;
 
-
-	for(i=0; i < ILP_WIN_SIZE_CNT; i++)
+	for(i=0; i < ILP_WIN_SIZE_CNT; i++){
 		timeAvailable_all[i][regId] = issueTime_all[i] + 1;
+         }
 }
 
 /* memory access stuff */
@@ -615,24 +639,26 @@ VOID readMem_ilp_all(ADDRINT effAddr, ADDRINT size){
 	ADDRINT a;
 	ADDRINT upperMemAddr, indexInChunk;
 	memNode* chunk = (memNode*)NULL;
-	ADDRINT shiftedAddr = effAddr >> 5;
-	ADDRINT shiftedEndAddr = (effAddr+size) >> 5;
+	ADDRINT shiftedAddr = effAddr >> ilp_block_size;
+	ADDRINT shiftedEndAddr = (effAddr + size - 1) >> ilp_block_size;
 
-	for(a = shiftedAddr; a <= shiftedEndAddr; a++){
-		upperMemAddr = a >> LOG_MAX_MEM_ENTRIES;
-		indexInChunk = a ^ (upperMemAddr << LOG_MAX_MEM_ENTRIES);
+        if(size > 0){
+                for(a = shiftedAddr; a <= shiftedEndAddr; a++){
+                        upperMemAddr = a >> LOG_MAX_MEM_ENTRIES;
+                        indexInChunk = a ^ (upperMemAddr << LOG_MAX_MEM_ENTRIES);
 
-		chunk = lookup(memAddressesTable_all,upperMemAddr);
-		if(chunk == (memNode*)NULL)
-			chunk = install(memAddressesTable_all,upperMemAddr);
+                        chunk = lookup(memAddressesTable_all,upperMemAddr);
+                        if(chunk == (memNode*)NULL)
+                                chunk = install(memAddressesTable_all,upperMemAddr);
 
-		assert(indexInChunk < MAX_MEM_ENTRIES);
-		for(i=0; i < ILP_WIN_SIZE_CNT; i++){
+                        //assert(indexInChunk < MAX_MEM_ENTRIES);
+                        for(i=0; i < ILP_WIN_SIZE_CNT; i++){
 
-			if(all_times_all[i][chunk->timeAvailable[indexInChunk]] > issueTime_all[i])
-				issueTime_all[i] = all_times_all[i][chunk->timeAvailable[indexInChunk]];
-		}
-	}
+                                if(all_times_all[i][chunk->timeAvailable[indexInChunk]] > issueTime_all[i])
+                                        issueTime_all[i] = all_times_all[i][chunk->timeAvailable[indexInChunk]];
+                        }
+                }
+        }
 }
 
 VOID writeMem_ilp_all(ADDRINT effAddr, ADDRINT size){
@@ -641,27 +667,30 @@ VOID writeMem_ilp_all(ADDRINT effAddr, ADDRINT size){
 	ADDRINT a;
 	ADDRINT upperMemAddr, indexInChunk;
 	memNode* chunk = (memNode*)NULL;
-	ADDRINT shiftedAddr = effAddr >> 5;
-	ADDRINT shiftedEndAddr = (effAddr+size) >> 5;
+	ADDRINT shiftedAddr = effAddr >> ilp_block_size;
+	ADDRINT shiftedEndAddr = (effAddr + size - 1) >> ilp_block_size;
+        
+        if(size > 0){
+                for(a = shiftedAddr; a <= shiftedEndAddr; a++){
+                        upperMemAddr = a >> LOG_MAX_MEM_ENTRIES;
+                        indexInChunk = a ^ (upperMemAddr << LOG_MAX_MEM_ENTRIES);
 
-	for(a = shiftedAddr; a <= shiftedEndAddr; a++){
-		upperMemAddr = a >> LOG_MAX_MEM_ENTRIES;
-		indexInChunk = a ^ (upperMemAddr << LOG_MAX_MEM_ENTRIES);
+                        chunk = lookup(memAddressesTable_all,upperMemAddr);
+                        if(chunk == (memNode*)NULL)
+                                chunk = install(memAddressesTable_all,upperMemAddr);
 
-		chunk = lookup(memAddressesTable_all,upperMemAddr);
-		if(chunk == (memNode*)NULL)
-			chunk = install(memAddressesTable_all,upperMemAddr);
-
-		assert(indexInChunk < MAX_MEM_ENTRIES);
-		if(chunk->timeAvailable[indexInChunk] == 0){
-			index_all_times_all++;
-			if(index_all_times_all >= (1 << size_pow_all_times_all))
-				increase_size_all_times_all();
-			chunk->timeAvailable[indexInChunk] = index_all_times_all;
-		}
-		for(i=0; i < ILP_WIN_SIZE_CNT; i++)
-			all_times_all[i][chunk->timeAvailable[indexInChunk]] = issueTime_all[i] + 1;
-	}
+                        //assert(indexInChunk < MAX_MEM_ENTRIES);
+                        if(chunk->timeAvailable[indexInChunk] == 0){
+                                index_all_times_all++;
+                                if(index_all_times_all >= (1 << size_pow_all_times_all))
+                                        increase_size_all_times_all();
+                                chunk->timeAvailable[indexInChunk] = index_all_times_all;
+                        }
+                        for(i=0; i < ILP_WIN_SIZE_CNT; i++){
+                                all_times_all[i][chunk->timeAvailable[indexInChunk]] = issueTime_all[i] + 1;
+                        }
+                }
+        }
 }
 
 /* instrumenting (instruction level) */
@@ -732,24 +761,32 @@ VOID fini_ilp_all(INT32 code, VOID* v){
 	fini_ilp_buffering_all();
 
 	if(interval_size == -1){
-		output_file_ilp_all = fopen("ilp_full_int_pin.out","w");
-		fprintf(output_file_ilp_all,"%lld",(long long)total_ins_count);
+		output_file_ilp_all.open("ilp_full_int_pin.out", ios::out|ios::trunc);
+		output_file_ilp_all << total_ins_count;
 	}
 	else{
-		output_file_ilp_all = fopen("ilp_phases_int_pin.out","a");
-		fprintf(output_file_ilp_all,"%lld",(long long)interval_ins_count);
+		output_file_ilp_all.open("ilp_phases_int_pin.out", ios::out|ios::app);
+		output_file_ilp_all << interval_ins_count;
 	}
 	for(i = 0; i < ILP_WIN_SIZE_CNT; i++)
-		fprintf(output_file_ilp_all," %lld",(long long)cpuClock_interval_all[i]);
+		output_file_ilp_all << " " << cpuClock_interval_all[i];
 
-	fprintf(output_file_ilp_all,"\n");
-	fprintf(output_file_ilp_all,"number of instructions: %lld\n", total_ins_count);
-	fclose(output_file_ilp_all);
+	output_file_ilp_all << endl;
+	output_file_ilp_all << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_ilp_all.close();
 }
 
 /**************************
      ILP (BUFFERING)  
 ***************************/
+
+/*
+ * notes
+ *
+ * using PIN_FAST_ANALYSIS_CALL for buffering functions was tested
+ * during the preparation of MICA v0.3, but showed to slightly slowdown 
+ * things instead of speeding them up, so it was dropped in the end 
+ */
 
 /* initializing */
 void init_ilp_buffering(){
@@ -759,7 +796,7 @@ void init_ilp_buffering(){
 	ilp_buffer_index = 0;
 	for(i=0; i < ILP_BUFFER_SIZE; i++){
 		if((ilp_buffer[i] = (ilp_buffer_entry*)malloc(sizeof(ilp_buffer_entry))) == (ilp_buffer_entry*)NULL){
-			fprintf(stderr,"Could not allocate memory for ilp_buffer[%d]\n",i);
+			cerr << "Could not allocate memory for ilp_buffer[" << i << "]" << endl;
 			exit(1);
 		}
 		ilp_buffer[i]->e = (ins_buffer_entry*)NULL;
@@ -771,74 +808,27 @@ void init_ilp_buffering(){
 	}
 }
 
-ADDRINT ilp_buffer_instruction_2reads_write(void* _e, ADDRINT read1_addr, ADDRINT read2_addr, ADDRINT read_size, ADDRINT write_addr, ADDRINT write_size){
-
+VOID ilp_buffer_instruction_only(void* _e){
 	ilp_buffer[ilp_buffer_index]->e = (ins_buffer_entry*)_e;
+}
+
+VOID ilp_buffer_instruction_read(ADDRINT read1_addr, ADDRINT read_size){
 	ilp_buffer[ilp_buffer_index]->mem_read1_addr = read1_addr;
+	ilp_buffer[ilp_buffer_index]->mem_read_size = read_size;
+}
+
+VOID ilp_buffer_instruction_read2(ADDRINT read2_addr){
 	ilp_buffer[ilp_buffer_index]->mem_read2_addr = read2_addr;
-	ilp_buffer[ilp_buffer_index]->mem_read_size = read_size;
+}
+
+VOID ilp_buffer_instruction_write(ADDRINT write_addr, ADDRINT write_size){
 	ilp_buffer[ilp_buffer_index]->mem_write_addr = write_addr;
 	ilp_buffer[ilp_buffer_index]->mem_write_size = write_size;
-
-	ilp_buffer_index++;
-
-	return (ADDRINT)(ilp_buffer_index == ILP_BUFFER_SIZE);
 }
 
-ADDRINT ilp_buffer_instruction_read_write(void* _e, ADDRINT read1_addr, ADDRINT read_size, ADDRINT write_addr, ADDRINT write_size){
-
-	ilp_buffer[ilp_buffer_index]->e = (ins_buffer_entry*)_e;
-	ilp_buffer[ilp_buffer_index]->mem_read1_addr = read1_addr;
-	ilp_buffer[ilp_buffer_index]->mem_read_size = read_size;
-	ilp_buffer[ilp_buffer_index]->mem_write_addr = write_addr;
-	ilp_buffer[ilp_buffer_index]->mem_write_size = write_size;
-
-	ilp_buffer_index++;
-
-	return (ADDRINT)(ilp_buffer_index == ILP_BUFFER_SIZE);
-}
-
-ADDRINT ilp_buffer_instruction_2reads(void* _e, ADDRINT read1_addr, ADDRINT read2_addr, ADDRINT read_size){
-
-	ilp_buffer[ilp_buffer_index]->e = (ins_buffer_entry*)_e;
-	ilp_buffer[ilp_buffer_index]->mem_read1_addr = read1_addr;
-	ilp_buffer[ilp_buffer_index]->mem_read2_addr = read2_addr;
-	ilp_buffer[ilp_buffer_index]->mem_read_size = read_size;
-
-	ilp_buffer_index++;
-
-	return (ADDRINT)(ilp_buffer_index == ILP_BUFFER_SIZE);
-}
-
-ADDRINT ilp_buffer_instruction_read(void* _e, ADDRINT read1_addr, ADDRINT read_size){
-
-	ilp_buffer[ilp_buffer_index]->e = (ins_buffer_entry*)_e;
-	ilp_buffer[ilp_buffer_index]->mem_read1_addr = read1_addr;
-	ilp_buffer[ilp_buffer_index]->mem_read_size = read_size;
-
-	ilp_buffer_index++;
-
-	return (ADDRINT)(ilp_buffer_index == ILP_BUFFER_SIZE);
-}
-
-ADDRINT ilp_buffer_instruction_write(void* _e, ADDRINT write_addr, ADDRINT write_size){
-
-	ilp_buffer[ilp_buffer_index]->e = (ins_buffer_entry*)_e;
-	ilp_buffer[ilp_buffer_index]->mem_write_addr = write_addr;
-	ilp_buffer[ilp_buffer_index]->mem_write_size = write_size;
-
-	ilp_buffer_index++;
-
-	return (ADDRINT)(ilp_buffer_index == ILP_BUFFER_SIZE);
-}
-
-ADDRINT ilp_buffer_instruction(void* _e){
-
-	ilp_buffer[ilp_buffer_index]->e = (ins_buffer_entry*)_e;
-
-	ilp_buffer_index++;
-
-	return (ADDRINT)(ilp_buffer_index == ILP_BUFFER_SIZE);
+ADDRINT ilp_buffer_instruction_next(){
+        ilp_buffer_index++;
+        return (ADDRINT)(ilp_buffer_index == ILP_BUFFER_SIZE || interval_ins_count_for_hpc_alignment == interval_size);
 }
 
 /* empty buffer for one given window size  */
@@ -955,7 +945,7 @@ VOID instrument_ilp_buffering_common(INS ins, ins_buffer_entry* e){
 		regReadCnt = 0;	
 		for(i=0; i < maxNumRegsCons; i++){
 			reg = INS_RegR(ins, i);
-			assert((UINT32)reg < MAX_NUM_REGS);
+			//assert((UINT32)reg < MAX_NUM_REGS);
 			// only consider valid general-purpose registers (any bit-width) and floating-point registers,
 			// i.e. exlude branch, segment and pin registers, among others
 			if(REG_valid(reg) && (REG_is_fr(reg) || REG_is_mm(reg) || REG_is_xmm(reg) || REG_is_gr(reg) || REG_is_gr8(reg) || REG_is_gr16(reg) || REG_is_gr32(reg) || REG_is_gr64(reg))){
@@ -964,17 +954,18 @@ VOID instrument_ilp_buffering_common(INS ins, ins_buffer_entry* e){
 		}
 		
 		e->regReadCnt = regReadCnt;
-		if((e->regsRead = (REG*)malloc(regReadCnt*sizeof(REG))) == (REG*)NULL){
-			fprintf(stderr,"ERROR: Could not allocate regsRead memory for ins 0x%x\n", e->insAddr);
+		e->regsRead = (REG*)malloc(regReadCnt*sizeof(REG));
+		/*if((e->regsRead = (REG*)malloc(regReadCnt*sizeof(REG))) == (REG*)NULL){
+			fprintf(stderr,"ERROR: Could not allocate regsRead memory for ins 0x%x\n", (unsigned int)e->insAddr);
 			exit(1);
-		}
+		}*/
 
 		regReadCnt = 0;
 		for(i=0; i < maxNumRegsCons; i++){
 	
 			reg = INS_RegR(ins, i);
 
-			assert((UINT32)reg < MAX_NUM_REGS);
+			//assert((UINT32)reg < MAX_NUM_REGS);
 			// only consider valid general-purpose registers (any bit-width) and floating-point registers,
 			// i.e. exlude branch, segment and pin registers, among others
 			if(REG_valid(reg) && (REG_is_fr(reg) || REG_is_mm(reg) || REG_is_xmm(reg) || REG_is_gr(reg) || REG_is_gr8(reg) || REG_is_gr16(reg) || REG_is_gr32(reg) || REG_is_gr64(reg))){
@@ -995,7 +986,7 @@ VOID instrument_ilp_buffering_common(INS ins, ins_buffer_entry* e){
 
 			reg = INS_RegW(ins, i);
 
-			assert((UINT32)reg < MAX_NUM_REGS);
+			//assert((UINT32)reg < MAX_NUM_REGS);
 			// only consider valid general-purpose registers (any bit-width) and floating-point registers,
 			// i.e. exlude branch, segment and pin registers, among others */
 			if(REG_valid(reg) && (REG_is_fr(reg) || REG_is_mm(reg) || REG_is_xmm(reg) || REG_is_gr(reg) || REG_is_gr8(reg) || REG_is_gr16(reg) || REG_is_gr32(reg) || REG_is_gr64(reg))){
@@ -1004,17 +995,18 @@ VOID instrument_ilp_buffering_common(INS ins, ins_buffer_entry* e){
 		}
 
 		e->regWriteCnt = regWriteCnt;
-		if((e->regsWritten = (REG*)malloc(regWriteCnt*sizeof(REG))) == (REG*)NULL){
-			fprintf(stderr,"ERROR: Could not allocate regsRead memory for ins 0x%x\n", e->insAddr);
+		e->regsWritten = (REG*)malloc(regWriteCnt*sizeof(REG));
+		/*if((e->regsWritten = (REG*)malloc(regWriteCnt*sizeof(REG))) == (REG*)NULL){
+			fprintf(stderr,"ERROR: Could not allocate regsRead memory for ins 0x%x\n", (unsigned int)e->insAddr);
 			exit(1);
-		}	
+		}*/	
 
 		regWriteCnt = 0;
 		for(i=0; i < maxNumRegsProd; i++){
 
 			reg = INS_RegW(ins, i);
 
-			assert((UINT32)reg < MAX_NUM_REGS);
+			//assert((UINT32)reg < MAX_NUM_REGS);
 			// only consider valid general-purpose registers (any bit-width) and floating-point registers,
 			// i.e. exlude branch, segment and pin registers, among others
 			if(REG_valid(reg) && (REG_is_fr(reg) || REG_is_mm(reg) || REG_is_xmm(reg) || REG_is_gr(reg) || REG_is_gr8(reg) || REG_is_gr16(reg) || REG_is_gr32(reg) || REG_is_gr64(reg))){
@@ -1026,38 +1018,22 @@ VOID instrument_ilp_buffering_common(INS ins, ins_buffer_entry* e){
 	}
 
 	// buffer memory operations (and instruction register buffer) with one single InsertCall
-	if(INS_IsMemoryRead(ins)){
+	INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ilp_buffer_instruction_only, IARG_PTR, (void*)e, IARG_END);
 
-		if(INS_IsMemoryWrite(ins)){
-			if(INS_HasMemoryRead2(ins)){
+        if(INS_IsMemoryRead(ins)){
+				
+                INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ilp_buffer_instruction_read, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_END);
 
-				INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)ilp_buffer_instruction_2reads_write, IARG_PTR, (void*)e, IARG_MEMORYREAD_EA, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
-			}
-			else{
-				INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)ilp_buffer_instruction_read_write, IARG_PTR, (void*)e, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
-
-			}
-		}
-		else{
-			if(INS_HasMemoryRead2(ins)){
-
-				INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)ilp_buffer_instruction_2reads, IARG_PTR, (void*)e, IARG_MEMORYREAD_EA, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_END);
-			}
-			else{
-
-				INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)ilp_buffer_instruction_read, IARG_PTR, (void*)e, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_END);
-			}
-		}
-	}
-	else{
-		if(INS_IsMemoryWrite(ins)){
-
-			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)ilp_buffer_instruction_write, IARG_PTR, (void*)e, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
-		}
-		else{
-			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)ilp_buffer_instruction, IARG_PTR, (void*)e, IARG_END);
-		}
-	}
+                if(INS_HasMemoryRead2(ins)){
+                        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ilp_buffer_instruction_read2, IARG_MEMORYREAD2_EA, IARG_END);
+                }
+        }
+                        
+        if(INS_IsMemoryWrite(ins)){
+                INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)ilp_buffer_instruction_write, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
+        }
+        
+	INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)ilp_buffer_instruction_next, IARG_END);
 
 }
 

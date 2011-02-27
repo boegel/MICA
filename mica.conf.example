@@ -1,3 +1,6 @@
 analysis_type: ilp_one
 interval_size: full
 ilp_size: 32
+block_size: 6
+page_size: 12
+itypes_spec_file: itypes_default.spec

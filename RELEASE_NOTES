@@ -1,13 +1,29 @@
-X Xth 2009
+February 27th 2011
 ------------------
 
 MICA v0.3
 
-- increases flexibility of itypes analysis significantly
+- increased flexibility of itypes analysis significantly
         - instruction groups used in itypes analysis can be specified by the user now,
           using a itypes.spec file; specify the filename in mica.conf using an entry like:
                 itypes_spec_file: <filename>
-        - by default, the old instruction groups are used
+        - by default, the old instruction groups are used 
+          (except for SYSCALL, which was added to the group formely known as 'other')
+- made block size in ilp, memfootprint and memreusedist flexible
+        - size can be set by specifying 'block_size: <power of 2>' in the mica.conf file
+        - default block size is 2^6 (64) bytes, which is a change compared to MICA v0.23 for ilp
+- made page size in memfootprint flexible
+        - size can be set by specifying 'page_size: <power of 2>' in the mica.conf file
+        - default page size is 4096 (2^12) bytes
+- possibly expensive assert statements and other sanity checks were removed
+- bug fixes: 
+        - memory read size wasn't being used 100% correctly
+          in ilp, memfootprint, memreusedist and stride analysis,
+          the size was being added to the start address of the read,
+          while (size-1) should be added; otherwise, e.g. for memfootprint,
+          we count an extra block being touched if the access is near a block boundary
+        - a small problem with an assert statement was fixed in memfootprint (>= 0 instead of >)
+        - fprintf statements were fixed for 64-bit systems
 
 
 September 22th 2009

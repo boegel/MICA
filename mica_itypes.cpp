@@ -16,10 +16,12 @@
 
 extern INT64 interval_size;
 extern INT64 interval_ins_count;
+extern INT64 interval_ins_count_for_hpc_alignment;
 extern INT64 total_ins_count;
+extern INT64 total_ins_count_for_hpc_alignment;
 extern char* _itypes_spec_file;
 
-FILE* output_file_itypes;
+ofstream output_file_itypes;
 
 identifier** group_identifiers;
 INT64* group_ids_cnt;
@@ -32,18 +34,18 @@ identifier* other_group_identifiers;
 
 /* counter functions */
 ADDRINT itypes_instr_intervals(){
-	return (ADDRINT)(total_ins_count % interval_size == 0);
+	return (ADDRINT)(interval_ins_count_for_hpc_alignment == interval_size);
 };
 
 VOID itypes_instr_interval_output(){
 	int i;
-	output_file_itypes = fopen("itypes_phases_int_pin.out","a");
-	fprintf(output_file_itypes, "%lld", (long long)interval_size);
+	output_file_itypes.open("itypes_phases_int_pin.out", ios::out|ios::app);
+	output_file_itypes << interval_size;
 	for(i=0; i < number_of_groups+1; i++){
-		fprintf(output_file_itypes, " %lld", group_counts[i]);
+		output_file_itypes << " " << group_counts[i];
 	}
-	fprintf(output_file_itypes, "\n");
-	fclose(output_file_itypes);
+	output_file_itypes << endl;
+	output_file_itypes.close();
 }
 
 VOID itypes_instr_interval_reset(){
@@ -58,6 +60,7 @@ VOID itypes_instr_interval(){
 	itypes_instr_interval_output();
 	itypes_instr_interval_reset();
 	interval_ins_count = 0;
+	interval_ins_count_for_hpc_alignment = 0;
 }
 
 VOID itypes_count(UINT32 gid){ 
@@ -173,7 +176,7 @@ VOID init_itypes_default_groups(){
         strcpy(group_identifiers[8][1].str, "SSE");
 
         // other (interrupts, rotate instructions, semaphore, conditional move, system)
-        group_ids_cnt[9] = 7;
+        group_ids_cnt[9] = 8;
         group_identifiers[9] = (identifier*)malloc(group_ids_cnt[9]*sizeof(identifier));
         group_identifiers[9][0].type = identifier_type::ID_TYPE_CATEGORY;
         group_identifiers[9][0].str = (char*)malloc(20*sizeof(char));
@@ -196,6 +199,9 @@ VOID init_itypes_default_groups(){
         group_identifiers[9][6].type = identifier_type::ID_TYPE_CATEGORY;
         group_identifiers[9][6].str = (char*)malloc(20*sizeof(char));
         strcpy(group_identifiers[9][6].str, "PREFETCH");
+        group_identifiers[9][7].type = identifier_type::ID_TYPE_CATEGORY;
+        group_identifiers[9][7].str = (char*)malloc(20*sizeof(char));
+        strcpy(group_identifiers[9][7].str, "SYSCALL");
 
         // [!] NOP instructions
         group_ids_cnt[10] = 2;
@@ -215,21 +221,22 @@ VOID init_itypes(){
         int gid, sgid;
         char type[100];
         char str[100];
+        string line;
 
         /* try and open instruction groups specification file */
         if(_itypes_spec_file != NULL){
-                FILE* f = fopen(_itypes_spec_file, "r");
-                if(f != NULL){
+                ifstream f(_itypes_spec_file);
+                if(f){
                         // count number of groups
                         number_of_groups = 0;
-                        while( feof(f) == 0){
-                                fscanf(f, "%d, %d, %[^,], %[^\n]\n", &gid, &sgid, type, str);
+                        while( getline(f,line)){
+                                sscanf(line.c_str(), "%d, %d, %[^,], %[^\n]\n", &gid, &sgid, type, str);
                                 if(gid > number_of_groups)
                                         number_of_groups++;
                         }
-                        fclose(f);
+                        f.close();
                         number_of_groups++;
-                        fprintf(stderr, "==> found %lld groups\n", (long long)number_of_groups);
+                        cerr << "==> found " << number_of_groups << " groups" << endl;
 
                         group_identifiers = (identifier**)malloc((number_of_groups+1)*sizeof(identifier*));
                         group_ids_cnt = (INT64*)malloc((number_of_groups+1)*sizeof(INT64));
@@ -239,10 +246,10 @@ VOID init_itypes(){
                         }
 
                         // count number of subgroups per group
-                        f = fopen(_itypes_spec_file, "r");
+                        f.open(_itypes_spec_file);
                         i=0;
-                        while( feof(f) == 0){
-                                fscanf(f, "%d, %d, %[^,], %[^\n]\n", &gid, &sgid, type, str);
+                        while( getline(f,line)){
+                                sscanf(line.c_str(), "%d, %d, %[^,], %[^\n]\n", &gid, &sgid, type, str);
                                 if(gid == i){
                                         group_ids_cnt[i]++;
                                 }
@@ -253,13 +260,13 @@ VOID init_itypes(){
                                 }
                         }
                         group_identifiers[i] = (identifier*)malloc(group_ids_cnt[i]*sizeof(identifier));
-                        fclose(f);
+                        f.close();
 
                         // save subgroup types and identifiers
-                        f = fopen(_itypes_spec_file, "r");
+                        f.open(_itypes_spec_file);
                         i=0;
-                        while( feof(f) == 0){
-                                fscanf(f, "%d, %d, %[^,], %[^\n]\n", &gid, &sgid, type, str);
+                        while( getline(f,line)){
+                                sscanf(line.c_str(), "%d, %d, %[^,], %[^\n]\n", &gid, &sgid, type, str);
                                 if(strcmp(type, "CATEGORY") == 0){
                                         group_identifiers[gid][sgid].type = identifier_type::ID_TYPE_CATEGORY;
                                 }
@@ -272,8 +279,8 @@ VOID init_itypes(){
                                                         group_identifiers[gid][sgid].type = identifier_type::ID_TYPE_SPECIAL;
                                                 }
                                                 else{
-                                                        fprintf(stderr, "ERROR! Unknown subgroup type found (\"%s\").\n", type);
-                                                        fprintf(stderr, "   Known subgroup types: {CATEGORY, OPCODE, SPECIAL}.\n");
+                                                        cerr << "ERROR! Unknown subgroup type found (\"" << type << "\")." << endl;
+                                                        cerr << "   Known subgroup types: {CATEGORY, OPCODE, SPECIAL}." << endl;
                                                         exit(-1);
                                                 }
                                         }
@@ -281,54 +288,54 @@ VOID init_itypes(){
                                 group_identifiers[gid][sgid].str = (char*)malloc(20*sizeof(char));
                                 strcpy(group_identifiers[gid][sgid].str, str);
                         }
-                        fclose(f);
+                        f.close();
 
                         // print out groups read
                         for(i=0; i < number_of_groups; i++){
-                                fprintf(stderr, "   group %d (#: %lld): ", i, (long long)group_ids_cnt[i]);
+                                cerr << "   group " << i << " (#: " << group_ids_cnt[i] << "): ";
                                 for(j=0; j < group_ids_cnt[i]; j++){
-                                        fprintf(stderr, "%s ", group_identifiers[i][j].str);
+                                        cerr << group_identifiers[i][j].str << " ";
                                         switch(group_identifiers[i][j].type){
                                                 case identifier_type::ID_TYPE_CATEGORY:
-                                                        fprintf(stderr, "[CAT]; ");
+                                                        cerr << "[CAT]; ";
                                                         break;
                                                 case identifier_type::ID_TYPE_OPCODE:
-                                                        fprintf(stderr, "[OPCODE]; ");
+                                                        cerr << "[OPCODE]; ";
                                                         break;
                                                 case identifier_type::ID_TYPE_SPECIAL:
-                                                        fprintf(stderr, "[SPECIAL]; ");
+                                                        cerr << "[SPECIAL]; ";
                                                         break;
                                                 default:
-                                                        fprintf(stderr, "ERROR! Unknown subgroup type found for [%d][%d] (\"%d\").\n", i, j, group_identifiers[i][j].type);
-                                                        fprintf(stderr, "   Known subgroup types: {CATEGORY, OPCODE, SPECIAL}.\n");
+                                                        cerr << "ERROR! Unknown subgroup type found for [" << i << "][" << j << "] (\"" << group_identifiers[i][j].type << "\")." << endl;
+                                                        cerr << "   Known subgroup types: {CATEGORY, OPCODE, SPECIAL}." << endl;
                                                         exit(-1);
                                                         break;
                                         }
                                 }
-                                fprintf(stderr, "\n");
+                                cerr << endl;
                         }
-
-                        // allocate space for identifiers of 'other' group
-                        other_ids_cnt = 0;
-                        other_ids_max_cnt = 2;
-                        other_group_identifiers = (identifier*)malloc(other_ids_max_cnt*sizeof(identifier));
                 }
                 else{
-                        fprintf(stderr, "ERROR! Failed to open file \"%s\" containing instruction groups specification.\n", _itypes_spec_file);
+                        cerr << "ERROR! Failed to open file \"" << _itypes_spec_file << "\" containing instruction groups specification." << endl;
                         exit(-1);
                 }
         }
-	else{
-		// if no specification file was found, just use defaults (compatible with MICA v0.23 and older)
+        else{
+                // if no specification file was found, just use defaults (compatible with MICA v0.23 and older)
                 init_itypes_default_groups();
-	}
+        }
 
-	// (initializing total instruction counts is done in mica.cpp)
-	
-	if(interval_size != -1){		
-		output_file_itypes = fopen("itypes_phases_int_pin.out","w");
-		fclose(output_file_itypes);
-	}
+        // allocate space for identifiers of 'other' group
+        other_ids_cnt = 0;
+        other_ids_max_cnt = 2;
+        other_group_identifiers = (identifier*)malloc(other_ids_max_cnt*sizeof(identifier));
+
+        // (initializing total instruction counts is done in mica.cpp)
+
+        if(interval_size != -1){		
+                output_file_itypes.open("itypes_phases_int_pin.out", ios::out|ios::trunc);
+                output_file_itypes.close();
+        }
 }
 
 /* instrumenting (instruction level) */
@@ -379,7 +386,7 @@ VOID instrument_itypes(INS ins, VOID* v){
 						}
 					}
 					else{
-						fprintf(stderr, "ERROR! Unknown identifier type specified (%d).\n", group_identifiers[i][j].type);
+						cerr << "ERROR! Unknown identifier type specified (" << group_identifiers[i][j].type << ")." << endl;
 					}
 				}
 			}
@@ -405,7 +412,7 @@ VOID instrument_itypes(INS ins, VOID* v){
                 }
 
                 // prepare for (possible) next category
-                if(other_ids_cnt == other_ids_max_cnt){
+                if(other_ids_cnt >= other_ids_max_cnt){
                         other_ids_max_cnt *= 2;
                         other_group_identifiers = (identifier*)realloc(other_group_identifiers, other_ids_max_cnt*sizeof(identifier));
                 }
@@ -424,26 +431,28 @@ VOID fini_itypes(INT32 code, VOID* v){
         int i;
 
 	if(interval_size == -1){
-		output_file_itypes = fopen("itypes_full_int_pin.out","w");
-	        fprintf(output_file_itypes, "%lld", (long long)total_ins_count);
+		output_file_itypes.open("itypes_full_int_pin.out", ios::out|ios::trunc);
+	        output_file_itypes << total_ins_count;
         	for(i=0; i < number_of_groups+1; i++){
-        		fprintf(output_file_itypes, " %lld", group_counts[i]);
+        		output_file_itypes << " " << group_counts[i];
         	}
-        	fprintf(output_file_itypes, "\n");
+        	output_file_itypes << endl;
 	}
 	else{
-		output_file_itypes = fopen("itypes_phases_int_pin.out","a");
-	        fprintf(output_file_itypes, "%lld", (long long)interval_ins_count);
+		output_file_itypes.open("itypes_phases_int_pin.out", ios::out|ios::app);
+	        output_file_itypes << interval_ins_count;
         	for(i=0; i < number_of_groups+1; i++){
-        		fprintf(output_file_itypes, " %lld", group_counts[i]);
+        		output_file_itypes << " " << group_counts[i];
         	}
+        	output_file_itypes << endl;
 	}
-	fprintf(output_file_itypes,"number of instructions: %lld\n", total_ins_count);
-	fclose(output_file_itypes);
+	output_file_itypes << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_itypes.close();
 
         // print instruction categories in 'other' group of instructions
-        FILE* output_file_other_group_categories = fopen("itypes_other_group_categories.txt", "w");
+        ofstream output_file_other_group_categories;
+        output_file_other_group_categories.open("itypes_other_group_categories.txt", ios::out|ios::trunc);
         for(i=0; i < other_ids_cnt; i++){
-                fprintf(output_file_other_group_categories, "%s\n", other_group_identifiers[i].str);
+                output_file_other_group_categories << other_group_identifiers[i].str << endl;
         }
 }

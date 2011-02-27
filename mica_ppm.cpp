@@ -16,9 +16,11 @@
 
 extern INT64 interval_size;
 extern INT64 interval_ins_count;
+extern INT64 interval_ins_count_for_hpc_alignment;
 extern INT64 total_ins_count;
+extern INT64 total_ins_count_for_hpc_alignment;
 
-FILE* output_file_ppm;
+ofstream output_file_ppm;
 
 BOOL lastInstBr; // was the last instruction a cond. branch instruction?
 ADDRINT nextAddr; // address of the instruction after the last cond.branch
@@ -74,7 +76,7 @@ void init_ppm(){
 	/* translation of instruction address to indices */
 	indices_condBr_size = 1024;
 	if( (indices_condBr = (ADDRINT*) malloc(indices_condBr_size*sizeof(ADDRINT))) == (ADDRINT*)NULL){
-		fprintf(stderr,"Could not allocate memory for indices_condBr\n");
+		cerr << "Could not allocate memory for indices_condBr" << endl;
 		exit(1);
 	}
 
@@ -82,24 +84,24 @@ void init_ppm(){
 	/* global/local history */
 	bhr = 0;
 	if((local_bhr = (int*) malloc (brHist_size * sizeof(int))) == (int*) NULL) {
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	/* GAg PPM predictor */
 	if((GAg_pht = ((char***) malloc (NUM_HIST_LENGTHS * sizeof(char**)))) == (char***) NULL) {
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	for(j = 0; j < NUM_HIST_LENGTHS; j++) {
 		if((GAg_pht[j] = (char**) malloc((history_lengths[j]+1)*sizeof(char*))) == (char**) NULL) {
-			fprintf(stderr,"Could not allocate memory\n");
+			cerr << "Could not allocate memory" << endl;
 			exit(1);
 		}
 		for(i = 0; i <= history_lengths[j]; i++){
 			if((GAg_pht[j][i] = (char*) malloc((1 << i)*sizeof(char))) == (char*) NULL) {
-				fprintf(stderr,"Could not allocate memory\n");
+				cerr << "Could not allocate memory" << endl;
 				exit(1);
 			}
 			for(k = 0; k < (1 << i); k++)
@@ -109,18 +111,18 @@ void init_ppm(){
 
 	/* PAg PPM predictor */
 	if((PAg_pht = ((char***) malloc (NUM_HIST_LENGTHS * sizeof(char**)))) == (char***) NULL) {
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	for(j = 0; j < NUM_HIST_LENGTHS; j++) {
 		if((PAg_pht[j] = (char**) malloc((history_lengths[j]+1)*sizeof(char*))) == (char**) NULL) {
-			fprintf(stderr,"Could not allocate memory\n");
+			cerr << "Could not allocate memory" << endl;
 			exit(1);
 		}
 		for(i = 0; i <= history_lengths[j]; i++){
 			if((PAg_pht[j][i] = (char*) malloc((1 << i)*sizeof(char))) == (char*) NULL) {
-				fprintf(stderr,"Could not allocate memory\n");
+				cerr << "Could not allocate memory" << endl;
 				exit(1);
 			}
 			for(k = 0; k < (1 << i); k++)
@@ -130,43 +132,43 @@ void init_ppm(){
 
 	/* GAs PPM predictor */
 	if((GAs_touched = (char*) malloc (brHist_size * sizeof(char))) == (char*) NULL){
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	if((GAs_pht = (char****) malloc (brHist_size * sizeof(char***))) == (char****) NULL) { 
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	/* PAs PPM predictor */
 	if((PAs_touched = (char*) malloc (brHist_size * sizeof(char))) == (char*) NULL) {	
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	if((PAs_pht = (char****) malloc (brHist_size * sizeof(char***))) == (char****) NULL) {
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	if((transition_counts = (INT64*) malloc (brHist_size * sizeof(INT64))) == (INT64*) NULL) {
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	if((local_taken = (char*) malloc (brHist_size * sizeof(char))) == (char*) NULL) {
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	if((local_brCounts = (INT64*) malloc (brHist_size * sizeof(INT64))) == (INT64*) NULL) {
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
 	if((local_taken_counts = (INT64*) malloc (brHist_size * sizeof(INT64))) == (INT64*) NULL) {
-		fprintf(stderr,"Could not allocate memory\n");
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
 	}
 
@@ -187,8 +189,8 @@ void init_ppm(){
 	}
 
 	if(interval_size != -1){		
-		output_file_ppm = fopen("ppm_phases_int_pin.out","w");
-		fclose(output_file_ppm);
+		output_file_ppm.open("ppm_phases_int_pin.out", ios::out|ios::trunc);
+		output_file_ppm.close();
 	}
 
 }
@@ -198,7 +200,7 @@ void init_ppm(){
 
 ADDRINT ppm_instr_intervals(){
 	
-	return (ADDRINT)(total_ins_count % interval_size == 0);
+	return (ADDRINT)(interval_ins_count_for_hpc_alignment == interval_size);
 }
 
 VOID ppm_instr_interval_output(){
@@ -207,11 +209,11 @@ VOID ppm_instr_interval_output(){
 	INT64 total_taken_count = 0;
 	INT64 total_brCount = 0;
 
-	output_file_ppm = fopen("ppm_phases_int_pin.out","a");
+	output_file_ppm.open("ppm_phases_int_pin.out", ios::out|ios::app);
 
-	fprintf(output_file_ppm, "%lld", (long long)interval_size);
+	output_file_ppm << interval_size;
 	for(i = 0; i < NUM_HIST_LENGTHS; i++)
-		fprintf(output_file_ppm, " %lld %lld %lld %lld", (long long)GAg_incorrect_pred[i], (long long)PAg_incorrect_pred[i], (long long)GAs_incorrect_pred[i], (long long)PAs_incorrect_pred[i]);
+		output_file_ppm << " " << GAg_incorrect_pred[i] << " " << PAg_incorrect_pred[i] << " " << GAs_incorrect_pred[i] << " " << PAs_incorrect_pred[i];
 
 	for(i=0; i < brHist_size; i++){
 		if(local_brCounts[i] > 0){
@@ -227,9 +229,8 @@ VOID ppm_instr_interval_output(){
 			total_brCount += local_brCounts[i];
 		}
 	}
-	fprintf(output_file_ppm," %lld %lld %lld\n",(long long)total_brCount,(long long)total_transition_count,(long long)total_taken_count);
-
-	fclose(output_file_ppm);
+	output_file_ppm << " " << total_brCount << " " << total_transition_count << " " << total_taken_count << endl;
+	output_file_ppm.close();
 }
 
 VOID ppm_instr_interval_reset(){
@@ -256,6 +257,7 @@ VOID ppm_instr_interval(){
 	ppm_instr_interval_reset();
 
 	interval_ins_count = 0;
+	interval_ins_count_for_hpc_alignment = 0;
 }
 
 /* double memory space for branch history size when needed */
@@ -269,66 +271,66 @@ VOID reallocate_brHist(){
 	brHist_size = brHist_size*2;
 
 	int_ptr = (INT32*) realloc (local_bhr,brHist_size * sizeof(INT32));
-	if(int_ptr == (INT32*) NULL) {
-		fprintf(stderr,"Could not allocate memory\n");
+	/*if(int_ptr == (INT32*) NULL) {
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
-	}
+	}*/
 	local_bhr = int_ptr;
 
 	char_ptr = (char*) realloc (GAs_touched, brHist_size * sizeof(char));
-	if(char_ptr == (char*) NULL){
-		fprintf(stderr,"Could not allocate memory\n");
+	/*if(char_ptr == (char*) NULL){
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
-	}
+	}*/
 	GAs_touched = char_ptr;
 
 	char4_ptr = (char****) realloc (GAs_pht,brHist_size * sizeof(char***));
-	if(char4_ptr == (char****) NULL) { 
-		fprintf(stderr,"Could not allocate memory\n");
+	/*if(char4_ptr == (char****) NULL) { 
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
-	}
+	}*/
 	GAs_pht = char4_ptr;
 
 	char_ptr = (char*) realloc (PAs_touched,brHist_size * sizeof(char));
-	if(char_ptr == (char*) NULL) {	
-		fprintf(stderr,"Could not allocate memory\n");
+	/*if(char_ptr == (char*) NULL) {	
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
-	}
+	}*/
 	PAs_touched = char_ptr;
 
 	char4_ptr = (char****) realloc (PAs_pht,brHist_size * sizeof(char***));
-	if(char4_ptr == (char****) NULL) {
-		fprintf(stderr,"Could not allocate memory\n");
+	/*if(char4_ptr == (char****) NULL) {
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
-	}
+	}*/
 	PAs_pht = char4_ptr;
 
 	char_ptr = (char*) realloc (local_taken,brHist_size * sizeof(char));
-	if(char_ptr == (char*) NULL) {	
-		fprintf(stderr,"Could not allocate memory\n");
+	/*if(char_ptr == (char*) NULL) {	
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
-	}
+	}*/
 	local_taken = char_ptr;
 
 	int64_ptr = (INT64*) realloc(transition_counts, brHist_size * sizeof(INT64));
-	if(int64_ptr == (INT64*)NULL) {
-		fprintf(stderr,"Could not allocate memory\n");
+	/*if(int64_ptr == (INT64*)NULL) {
+		cerr,"Could not allocate memory" << endl;
 		exit(1);
-	}
+	}*/
 	transition_counts = int64_ptr;
 
 	int64_ptr = (INT64*) realloc(local_brCounts, brHist_size * sizeof(INT64));
-	if(int64_ptr == (INT64*)NULL) {
-		fprintf(stderr,"Could not allocate memory\n");
+	/*if(int64_ptr == (INT64*)NULL) {
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
-	}
+	}*/
 	local_brCounts = int64_ptr;
 
 	int64_ptr = (INT64*) realloc(local_taken_counts, brHist_size * sizeof(INT64));
-	if(int64_ptr == (INT64*)NULL) {
-		fprintf(stderr,"Could not allocate memory\n");
+	/*if(int64_ptr == (INT64*)NULL) {
+		cerr << "Could not allocate memory" << endl;
 		exit(1);
-	}
+	}*/
 	local_taken_counts = int64_ptr;
 }
 
@@ -348,22 +350,25 @@ VOID condBr(UINT32 id, BOOL _t){
 
 		GAs_touched[id] = 1;
 
-		if((GAs_pht[id] = ((char***) malloc (NUM_HIST_LENGTHS * sizeof(char**)))) == (char***) NULL) {
-			fprintf(stderr,"Could not allocate memory)\n");
+		GAs_pht[id] = ((char***) malloc (NUM_HIST_LENGTHS * sizeof(char**)));
+		/*if((GAs_pht[id] = ((char***) malloc (NUM_HIST_LENGTHS * sizeof(char**)))) == (char***) NULL) {
+			cerr << "Could not allocate memory" << endl;
 			exit(1);
-		}
+		}*/
 
 		for(j = 0; j < NUM_HIST_LENGTHS; j++){	
-			if((GAs_pht[id][j] = ((char**) malloc ((history_lengths[j]+1) * sizeof(char*)))) == (char**) NULL) {
-				fprintf(stderr,"Could not allocate memory)\n");
+			GAs_pht[id][j] = ((char**) malloc ((history_lengths[j]+1) * sizeof(char*)));
+			/*if((GAs_pht[id][j] = ((char**) malloc ((history_lengths[j]+1) * sizeof(char*)))) == (char**) NULL) {
+				cerr << "Could not allocate memory" << endl;
 				exit(1);
-			}
+			}*/
 
 			for(i = 0; i <= (int)history_lengths[j]; i++){
-				if((GAs_pht[id][j][i] = (char*) malloc((1 << i) * sizeof(char))) == (char*) NULL) {
-					fprintf(stderr,"Could not allocate memory\n");
+				GAs_pht[id][j][i] = (char*) malloc((1 << i) * sizeof(char));
+				/*if((GAs_pht[id][j][i] = (char*) malloc((1 << i) * sizeof(char))) == (char*) NULL) {
+					cerr << "Could not allocate memory" << endl;
 					exit(1);
-				}
+				}*/
 				for(k = 0; k < (1<<i); k++){
 					GAs_pht[id][j][i][k] = -1;
 				}
@@ -377,23 +382,26 @@ VOID condBr(UINT32 id, BOOL _t){
 
 		PAs_touched[id] = 1;
 
-		if((PAs_pht[id] = ((char***) malloc (NUM_HIST_LENGTHS * sizeof(char**)))) == (char***) NULL) {
-			fprintf(stderr,"Could not allocate memory\n");
+		PAs_pht[id] = ((char***) malloc (NUM_HIST_LENGTHS * sizeof(char**)));
+		/*if((PAs_pht[id] = ((char***) malloc (NUM_HIST_LENGTHS * sizeof(char**)))) == (char***) NULL) {
+			cerr << "Could not allocate memory" << endl;
 			exit(1);
-		}
+		}*/
 
 		for(j = 0; j < NUM_HIST_LENGTHS; j++){	
-			if((PAs_pht[id][j] = ((char**) malloc ((history_lengths[j]+1) * sizeof(char*)))) == (char**) NULL) {
-				fprintf(stderr,"Could not allocate memory\n");
+			PAs_pht[id][j] = ((char**) malloc ((history_lengths[j]+1) * sizeof(char*)));
+			/*if((PAs_pht[id][j] = ((char**) malloc ((history_lengths[j]+1) * sizeof(char*)))) == (char**) NULL) {
+				cerr << "Could not allocate memory" << endl;
 				exit(1);
-			}
+			}*/
 
 			mem_cnt = 0;
 			for(i = 0; i <= (int)history_lengths[j]; i++){
-				if((PAs_pht[id][j][i] = (char*) malloc((1 << i) * sizeof(char))) == (char*) NULL) {
-					fprintf(stderr,"Could not allocate memory\n");
+				PAs_pht[id][j][i] = (char*) malloc((1 << i) * sizeof(char));
+				/*if((PAs_pht[id][j][i] = (char*) malloc((1 << i) * sizeof(char))) == (char*) NULL) {
+					cerr << "Could not allocate memory" << endl;
 					exit(1);
-				}
+				}*/
 				for(k = 0; k < (1 << i); k++){
 					PAs_pht[id][j][i][k] = -1;
 				}
@@ -595,10 +603,10 @@ void register_condBr(ADDRINT ins_addr){
 
 		indices_condBr_size *= 2;
 		ptr = (ADDRINT*) realloc(indices_condBr, indices_condBr_size*sizeof(ADDRINT));
-		if(ptr == (ADDRINT*)NULL){
-			fprintf(stderr,"Could not allocate memory (realloc in register_condBr)!\n");
+		/*if(ptr == (ADDRINT*)NULL){
+			cerr << "Could not allocate memory (realloc in register_condBr)!" << endl;
 			exit(1);
-		}
+		}*/
 		indices_condBr = ptr;
 
 	}
@@ -649,15 +657,15 @@ VOID fini_ppm(INT32 code, VOID* v){
 	int i;
 
 	if(interval_size == -1){
-		output_file_ppm = fopen("ppm_full_int_pin.out","w");
-		fprintf(output_file_ppm, "%lld", (long long)total_ins_count);
+		output_file_ppm.open("ppm_full_int_pin.out", ios::out|ios::trunc);
+		output_file_ppm << total_ins_count;
 	}
 	else{
-		output_file_ppm = fopen("ppm_phases_int_pin.out","a");
-		fprintf(output_file_ppm, "%lld", (long long)interval_ins_count);
+		output_file_ppm.open("ppm_phases_int_pin.out", ios::out|ios::app);
+		output_file_ppm << interval_ins_count;
 	}
 	for(i=0; i < NUM_HIST_LENGTHS; i++)
-		fprintf(output_file_ppm," %lld %lld %lld %lld", (long long)GAg_incorrect_pred[i], (long long)PAg_incorrect_pred[i], (long long)GAs_incorrect_pred[i], (long long)PAs_incorrect_pred[i]);
+		output_file_ppm << " " << GAg_incorrect_pred[i] << " " << PAg_incorrect_pred[i] << " " << GAs_incorrect_pred[i] << " " << PAs_incorrect_pred[i];
 
 	INT64 total_transition_count = 0;
 	INT64 total_taken_count = 0;
@@ -676,7 +684,7 @@ VOID fini_ppm(INT32 code, VOID* v){
 			total_brCount += local_brCounts[i];
 		}
 	}
-	fprintf(output_file_ppm," %lld %lld %lld\n",(long long)total_brCount,(long long)total_transition_count,(long long)total_taken_count); 
-	fprintf(output_file_ppm,"number of instructions: %lld\n", total_ins_count);
-	fclose(output_file_ppm);
+	output_file_ppm << " " << total_brCount << " " << total_transition_count << " " << total_taken_count << endl; 
+	output_file_ppm << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_ppm.close();
 }
