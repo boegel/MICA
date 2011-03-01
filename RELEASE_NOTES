@@ -1,3 +1,13 @@
+February 28th 2011
+------------------
+
+MICA v0.31
+
+- improved config file parsing, i.e. remove dependency on order of entries
+
+- updated README file
+	- describe some details regarding instruction mix
+
 February 27th 2011
 ------------------
 

@@ -1,10 +1,10 @@
 MICA: Microarchitecture-Independent Characterization of Applications
 ====================================================================
-version 0.3
+version 0.31
 
 Kenneth Hoste & Lieven Eeckhout (Ghent University, Belgium)
 
-website: http://www.elis.ugent.be/~kehoste/mica
+website: http://boegel.kejo.be/ELIS/MICA (http://www.elis.ugent.be/~kehoste/mica)
 
 A set of tutorial slides on MICA, which were presented at IISWC-2007 are
 available from the MICA website.
@@ -20,7 +20,7 @@ Any problem reports or questions are welcome at kenneth.hoste@ugent.be .
 * Compilation
 --------------
 
-The easiest way to compile MICA is to add unzip/untar mica_v0-X.tar.gz to the source/tools
+The easiest way to compile MICA is to add unzip/untar mica_vXYZ.tar.gz to the source/tools
 directory of the Pin kit you are using. If you wish to place mica in a different
 directory, you'll have to adjust the makefile included accordinly.
 Running 'make' should produce the 'mica_v0-X' shared library.
@@ -28,7 +28,7 @@ Running 'make' should produce the 'mica_v0-X' shared library.
 * Specifying type of analysis
 -----------------------------
 
-MICA v0.2 supports various types of microarchitecture-independent characteristics.
+MICA supports various types of microarchitecture-independent characteristics.
 It also allows to measure the characteristics either for the entire execution, or
 per interval of N dynamic instructions.
 
@@ -36,26 +36,35 @@ Specifying the parameters is done using the mica.conf configuration file.
 A sample mica.conf file is provided with the distribution, and details
 on how to specify the parameters are found below.
 
-analysis_type: all | ilp | ilp_one | itypes | ppm | reg | stride | memfootprint | memreusedist
+analysis_type: all | ilp | ilp_one | itypes | ppm | reg | stride | memfootprint | memreusedist | custom
 interval_size: full | <size>
 [ilp_size: <size>]
+[block_size: <2^size>]
+[page_size: <2^size>]
+[itypes_spec_file: <file>]
 
-for example:
+example:
 
-analysis_type: itypes
+analysis_type: all
 interval_size: 100000000
+block_size: 6
+page_size: 12
+itypes_spec_file: itypes_default.spec
 
-specifies to measure the instruction mix per interval of 100,000,000 instructions.
+
+specifies to measure all supported characteristics per interval of 100,000,000 instructions,
+with block size of 64 (2^6), page size of 4K (2^12), and using the instruction mix categories
+described in the file itypes_default.spec
 
 * Usage
 -------
 
-Using MICA v0.2 is very easy; just run:
+Using MICA is very easy; just run:
 
-pin -t mica -- <program> [<parameter>]
+pin -t mica.so -- <program> [<parameter>]
 
-The type of analysis is specified in the mica.conf file, and some minor 
-logging is printed to mica.log (or mica.log.X).
+The type of analysis is specified in the mica.conf file, and some
+logging is written to mica.log.
 
 * Output files
 ---------------
@@ -87,6 +96,7 @@ memfootprint:
 memreusedist: 
 	full: memreusedist_full_int_pin.out
 	interval: memreusedist_phases_int_pin.out
+	
 
 * Full execution metrics
 -----------------------------------
@@ -100,7 +110,7 @@ The only limitations are the instruction window size and the data dependences.
 
 analysis_type: ilp
 
-Besides measuring these four window sizes at once, MICA v0.2 also supports
+Besides measuring these four window sizes at once, MICA also supports
 specifying a single window size, which is specified as follows (for 
 characterizing the full run using an instruction window of 32 entries):
 
@@ -108,14 +118,18 @@ analysis_type: ilp_one
 interval_size: full
 ilp_size: 32
 
+You can tweak the block size used using the block_size configuration parameter.
+
 +++ itypes +++
+
+analysis_type: itypes
 
 Instruction mix.
 
 The instruction mix is evaluated by categorizing the executed instructions.
 Because the x86 architecture isn't a load-store architecture, we count memory
-reads/writes seperately. The following categories are used (in order of
-output):
+reads/writes seperately. The following categories are used by default (in order 
+of output):
 
 - memory read (instructions which read from memory)
 - memory write (instructions which write to memory)
@@ -129,9 +143,12 @@ output):
 - other
 - nop
 
-analysis_type: itypes
+It is possible to redefine the instruction mix categories, by creating a specification
+file and mentioning it in the mica.conf file (itypes_spec_file).
 
 +++ ppm +++
+
+analysis_type: ppm
 
 Branch predictability. 
 
@@ -141,9 +158,9 @@ configurations (global/local branch history, shared/seperate prediction
 table(s)), using 3 different history length (4,8,12 bits).  Additionally,
 average taken and transition count are also being measured.
 
-analysis_type: ppm
-
 +++ reg +++
+
+analysis_type: reg
 
 Register traffic.
 
@@ -155,9 +172,9 @@ The register traffic is analyzed in different aspects:
 
 Dependency distances are chosen in powers of 2, i.e. 1, 2, 4, 8, 16, 32, 64
 
-analysis_type: reg
-
 +++ stride +++
+
+analysis_type: stride
 
 Data stream strides.
 
@@ -172,9 +189,9 @@ Local means per static instruction accesses, global means over all
 instructions. The strides are characterized by powers of 8 (prob. <= 0, 8, 64,
 512, 4096, 32768, 262144)
 
-analysis_type: stride
-
 +++ memfootprint +++
+
+analysis_type: memfootprint
 
 Instruction and data memory footprint.
 
@@ -182,9 +199,9 @@ The size of the instruction and data memory footprint is characterized by
 counting the number of blocks (64-byte) and pages (4KB) touched. This
 is done seperately for data and instruction addresses.
 
-analysis_type: memfootprint
-
 +++ memreusedist +++
+
+analysis_type: memreusedist
 
 Memory reuse distances.
 
@@ -289,13 +306,31 @@ Nth line: (I-N*S)/cycle_count_win_size_i
 
 FORMAT:  
 
-instruction_cnt<space>mem_read_cnt<space>mem_write_cnt<space>control_cnt<space>arith_cnt<space>fp_cnt<space>stack_cnt<space>shift_cnt<space>string_cnt<space>sse_cnt<space>other_cnt<space>nop_cnt
+instruction_cnt<space>mem_read_cnt<space>mem_write_cnt<space>control_cnt<space>arith_cnt<space>fp_cnt<space>stack_cnt<space>shift_cnt<space>string_cnt<space>sse_cnt<space>system_cnt<space>nop_cnt<space>other_cnt
 
 CONVERSION:
 
 mem_write_cnt/instruction_cnt
 ...
 other_cnt/instruction_cnt
+
+NOTE
+
+Note that simply adding the (n-1) last numbers won't necceseraly yield the first number.
+First of all, the memory read and write counts shouldn't be added to the total, because
+the x86 architecture is not a load/store architecture (e.g. an instruction can both read
+memory and be a floating-point instruction).
+Secondly, some instructions may fit in multiple categories, and therefore simply adding the
+counts for the various categories will cause instructions to be counted double.
+
+Also note that the (sum of) instruction_cnt value(s) will not match the instruction count 
+printed at the last line of the output file ("number of instructions: <int>"). This is because
+in the former, each iteration of a REP-prefixed instruction is counted, while in the latter
+a REP-prefixed instruction in only counted once.
+
+The other_cnt contains the number of instructions that did not fit in any of the other categories
+(excluding mem_read and mem_write). More details on which kind of instructions this includes can
+be found in the itypes_other_group_categories.txt output file.
 
 +++ ppm +++
 
