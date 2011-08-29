@@ -1,0 +1,315 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>	Kenneth Hoste @ ELIS (UGent) -- MICA</title>
+<link rel="stylesheet" href="../style.css" type="text/css">
+
+<script src="http://www.google-analytics.com/urchin.js" type="text/javascript">
+</script>
+<script type="text/javascript">
+_uacct = "UA-2680737-3";
+urchinTracker();
+</script>
+</head>
+
+<body>
+
+<h1 align="center">MICA: Microarchitecture-Independent Characterization of Applications</h1>
+<table width="80%" align="center">
+<tr>
+<td width="100px"><img src="./kiviat-left.png" class="noborder"></td>
+<td><h3 align="center">Ghent University, Belgium</h3>
+<h4 align="center">Kenneth Hoste and Lieven Eeckhout</h4>
+<h5 align="center"><a href="mailto:kenneth.hoste@ugent.be">kenneth.hoste@ugent.be</a> , <a href="mailto:leeckhou@elis.ugent.be">leeckhou@elis.ugent.be</a></h5>
+<p align="center">
+<a href="#what">[ what? ]</a> :: 
+<a href="#news">[ news ]</a> :: 
+<a href="#download">[ download ]</a> ::
+<a href="#how">[ how? ]</a> ::
+<a href="#pub">[ publications ]</a> ::
+<a href="#links">[ links ]</a>
+</p></td>
+<td width="100px"><img src="./kiviat-right.png" class="noborder"></td>
+</tr>
+</table>
+
+
+
+<hr>
+
+<a name="what"></a>
+<h3>What is <b>MICA</b>?</h3>
+
+<p><b>MICA</b> is short for <b>M</b>icroarchitecture-<b>I</b>ndependent
+<b>C</b>haracterization of <b>A</b>pplications. </p>
+
+<p>MICA is a <a href="http://http://rogue.colorado.edu/Pin/index.html">Pin</a>
+tool which allows the user to collect a number of program characteristics to
+quantify runtime program behavior. </p>
+
+<p>These program characteristics are <i>totally independent</i> of the
+microarchitecture (cache configuration, branch predictor, ...) on which the
+measurements are done, in contrast to other workload characterization
+techniques using simulation or hardware performance counters.</p>
+
+<hr>
+
+<a name="news"></a>
+<h3>News</h3>
+
+<p><b><i>
+(Feb. 27th 2011)<br>
+I am no longer actively working in the field of computer architecture research. <br>
+Nevertheless, I will try and support MICA in the coming years.<br>
+If you notice that the last release of MICA isn't working for you, e.g. with the latest Pin kit, please contact me (<a href="mailto:kenneth.hoste@ugent.be">kenneth.hoste@ugent.be</a>)</i></b></p>
+
+<p><b>Aug. 29th 2011</b></p>
+<p>Release of MICA v0.32</p>
+<ul>
+<li>significant code cleanup by Petr Tuma<br>notes:
+        <ul>
+        <li>cleaned up some redundant NULL pointer casts</li>
+        <li>cleaned up names of LRU stack entry references</li>
+        <li>systematic testing of malloc return value in most of the tool code</li>
+        <li>added warning on presence of multiple threads</li>
+        <li>replaced sprintf with string streams</li>
+	<li>added branch prediction hints using __builtin_expect where appropriate</li>
+        </ul>
+<li>guard tracking progress in mica_progress.txt with a preprocessor flag (-DVERBOSE)</li>
+<li>test MICA built using the Intel C++ compiler, and document how to build it using
+  icpc in the README (TODO: benchmark the performance difference)</li>
+</ul>
+
+<p><b>Feb. 28th 2011</b></p>
+<p>Release of MICA v0.31</p>
+<ul>
+<li>improved config file parsing, i.e. remove dependency on order of entries</li>
+<li>updated README file
+	<ul>
+	<li>describe some details regarding instruction mix</li>
+	</ul>
+</li>
+</ul>
+
+
+<p><b>Feb. 27th 2011</b></p>
+<p>Release of MICA v0.3</p>
+<ul>
+<li>increased flexibility of itypes analysis significantly
+<ul>
+	<li>instruction groups used in itypes analysis can be specified by the user now,
+	using a itypes.spec file; specify the filename in mica.conf using an entry like:<br>
+	  'itypes_spec_file: &lt;filename&gt;'</li>
+	  <li>by default, the old instruction groups are used<br>
+	  (except for SYSCALL, which was added to the group formely known as 'other')</li>
+</ul>
+</li>
+<li>made block size in ilp, memfootprint and memreusedist flexible
+<ul>
+	<li>size can be set by specifying 'block_size: &lt;power of 2&gt;' in the mica.conf file</li>
+	<li>default block size is 2^6 (64) bytes, which is a change compared to MICA v0.23 for ilp</li>
+</ul>
+</li>
+<li>made page size in memfootprint flexible
+<ul>
+	<li>size can be set by specifying 'page_size: &lt;power of 2&gt;' in the mica.conf file</li>
+	<li>default page size is 4096 (2^12) bytes</li>
+</ul>
+</li>
+<li>possibly expensive assert statements and other sanity checks were removed</li>
+<li>bug fixes: 
+<ul>
+	<li>memory read size wasn't being used 100% correctly
+	in ilp, memfootprint, memreusedist and stride analysis,<br>
+	the size was being added to the start address of the read,
+	while (size-1) should be added; <br>otherwise, e.g. for memfootprint,
+	we count an extra block being touched if the access is near a block boundary</li>
+	<li>a small problem with an assert statement was fixed in memfootprint (>= 0 instead of >)</li>
+	<li>fprintf statements were fixed for 64-bit systems</li>
+</ul>
+</li>
+</ul>
+
+<p><b>Sep. 22th 2009</b></p>
+<p>
+<p>Release of MICA v0.23:</p>
+<ul>
+<li>bug fixes w.r.t. changes in Pin kit:</li>
+<ul>
+<li>adjusted makefile and README to reflect changed Pin kit directory tree</li>
+<li>adjusted mica_itypes.cpp to recognize both NOP and WIDENOP categories</li>
+</ul>
+</ul>
+
+
+<p><b>Jun. 13th 2008</b></p>
+<p>
+<p>Release of MICA v0.22, including:</p>
+<ul>
+<li>bug fixes in itypes:</li>
+<ul>
+	</li>fixed issue with instructions in MISC category being counted double (both in 'control flow' and 'other' buckets)
+	  (thanks to Ahmed S. Al-Zawawi for bringing my attention to this issue)</li>
+	<li>added NOP instructions category</li>
+</ul>
+<li>adjusted README file to make meaning of different buckets in memreusedist more clear 
+  (thanks to Kshitij Sudan for reporting this)</li>
+</ul>
+</p>
+
+<p><b>May 20th 2008</b></p>
+<p>
+<p>Release of MICA v0.21, including:</p>
+<ul><li>removed -static from makefile, to avoid issues when linking MICA
+  (thanks to J. K. Rai and Ahmed S. Al-Zawawi for reporting this)</li></ul>
+</p>
+
+<p><b>Mar. 26th 2008</b></p>
+<p>Fixed some faulty hyperlinks in the publication section, and added a new paper on phase-level workload characterization, to be presented at ISPASS-2008 (Austin (TX), April 2008). This is the first paper that actually uses MICA...
+</p>
+<p><b>Dec. 3rd 2007</b></p>
+<p>Release of MICA v0.2, which includes some important bug fixes and added features:
+<ul>
+<li><b>bugs fixed</b>: <i>reg</i> (not including non-full-width registers), <i>ilp</i> (stop including after first non-valid register), <i>stride</i> (faulty use of readIndex/writeIndex in readMem/writeMem), not resetting interval_ins_count for all characteristics</li>
+<li><b>added features</b>: taking size of memory reads/writes into account in <i>ilp</i>, <i>stride</i> and <i>memfootprint</i>, added <i>memreusedist</i> characteristics (for characterizing cache behavior)</li>
+<li><b>adjustments</b>: using 64-byte cache blocks for <i>memfootprint</i> (instead of 32-byte), configuring MICA is done using a <i>mica.conf</i> configuration file instead of using command line parameters</li>
+<li><b>speed</b>: used InsertIfCall/InsertThenCall to make more analysis routines inlineable, used buffering for <i>ilp</i>, which leads to a ~10% speedup</li>
+</ul>
+The new release is available <a href="./MICA/mica_v0-2.tar.gz">here</a>.
+</p>
+
+<p><b>Sept. 29th 2007</b></p>
+<p>Official introduction of MICA at the Pin tutorial at IISWC-2007. Slides for the presentation are available <a href="./IISWC-2007_PIN_tutorial.pdf">here</a>, full code examples used in the tutorial are available <a href="./PIN_tutorial_IISWC07_examples">here</a> (gzipped tarball <a href="./PIN_tutorial_IISWC07_examples.tar.gz">here</a>).</p>
+
+<p><b>Sept. 26th 2007</b></p>
+<p>A sneak preview of MICA was shown as part of an presentation I was giving at Intel Hudson (near Boston (MA), US). The Pin development team gave a lot of great feedback on how MICA could be improved and extended, and they were interested in using part of the code for their ongoing research.</p>
+
+<hr>
+
+<a name="download"></a>
+<h3>Download</h3>
+
+<p>You can download MICA below. The Pin tool is released under a BSD license, which basically means "do what you want with it, just don't pretend it's yours".</p>
+<p>If you are using MICA for a paper, please refer to the <a href="#micro">IEEE Micro article</a> below for the microarchitecture-independent characterization methodology.</p>
+<p align="center"><a href="./mica_v0.32.tar.gz">Download MICA v0.32</a></p>
+
+<hr>
+
+<a name="how"></a>
+<h3>How do I ...?</h3>
+
+<ul>
+<li>
+<h4>learn more about it?</h4>
+
+<p>A README-file containing information about using the tool and the outputs it produces is available in the release.</p>
+<p>A good place to start is the IISWC-2007 Pin tutorial presentation, available <a href="./IISWC-2007_PIN_tutorial.pdf">here</a>. </p>
+<p>For further questions about the use and implementation of MICA, please mail Kenneth Hoste (<a href="mailto:kehoste@elis.ugent.be">kehoste@elis.ugent.be</a>).</p>
+</li>
+<li>
+<h4>use it?</h4>
+<p>MICA is very easy to use, just like any other Pin tool. To analyze the <span class="tt">/bin/ls</span> program in Linux, measuring all available characteristics for the full run of the program, execute:</p>
+<div align="center"><span class="tt">pin -t mica.so -- ls</span></div>
+using a MICA config file that contains:
+<div><span class="tt">analysis_type: all<br>
+interval_size: full</span></div>
+</li>
+<li>
+<h4>get support for it?</h4>
+
+<p>For now, please contact Kenneth Hoste (<a href="mailto:kenneth.hoste@ugent.be">kenneth.hoste@ugent.be</a>) if you experience any problems using MICA. A MICA mailinglist will probably be set up some time soon.</p>
+</li>
+<li>
+<h4>contribute to it?</h4>
+<p>If you have improved MICA (fixed bugs, added features, ...), and want to contribute your efforts, please contact Kenneth Hoste (<a href="mailto:kenneth.hoste@ugent.be">kenneth.hoste@ugent.be</a>).</p>
+</li>
+</ul>
+
+<hr>
+
+<a name="pub"></a>
+<h3>Related publications</h3>
+
+<h4>Methodology:</h4>
+
+<ul>
+<a name="micro"></a>
+<li><p><i><b>Microarchitecture-Independent Workload Characterization</b></i><br>[<a target="_new" href="../abstracts/MICRO-HotTutorials07.html">abstract</a>; paper: <a href="../pub/hoste07microarchitecture_IEEE-MICRO-Hot-Tutorials_paper.pdf">PDF</a>]</p>
+by Kenneth Hoste and <a href="http://www.elis.ugent.be/~leeckhou" target="_new">Lieven Eeckhout</a>
+<p><a href="http://www.computer.org/micro" target="_new">IEEE Micro</a> 
+<a href="http://csdl2.computer.org/persagen/DLAbsToc.jsp?resourcePath=/dl/mags/mi/&toc=comp/mags/mi/2007/03/m3toc.xml" target="_new">Hot Tutorials, May/June 2007 (Vol. 27, No. 3)</a> pp. 63-72</li>
+</ul>
+
+<h4>Applications: </h4>
+
+<ul>
+<li>
+<p><i><b>Performance Prediction based on Inherent Program Similarity</b></i> 
+<br>[<a target="_new" href="../abstracts/PACT2006.html">abstract</a>; paper: <a href="../pub/hoste06performance_PACT-2006_paper.pdf">PDF</a>, <a href="../pub/hoste06performance_PACT-2006_paper.ps">PS</a>; <a href="../presentations/hoste06performance_PACT-2006_presentation.pdf">presentation</a>]</p> 
+<a href="http://www.ece.utexas.edu/~aashish" target="_new">Aashish Phansalkar</a>, 
+<a href="http://www.elis.ugent.be/~leeckhou" target="_new">Lieven Eeckhout</a>, 
+<a href="http://www.elis.ugent.be/~ageorges" target="_new">Andy Georges</a>, 
+<a href="http://www.ece.utexas.edu/~ljohn" target="_new">Lizy K. John</a> and 
+<a href="http://www.elis.ugent.be/~kdb" target="_new">Koen De Bosschere</a> 
+<p><i><b><a href="http://pactconf.org" target="_new">PACT-2006</a></b>, Sept. 2006; Seattle, WA (US)</i></p>
+</li>
+<li>
+<p><i><b>Comparing Benchmarks Using Key Microarchitecture-Independent Characteristics</b></i> 
+<br>[<a target="_new" href="../abstracts/IISWC2006.html">abstract</a>; paper: <a href="../pub/hoste06comparing_IISWC-2006_paper.pdf">PDF</a>; <a href="../presentations/hoste06comparing_IISWC-2006_presentation.pdf">presentation</a> ]</p>
+by 
+Kenneth Hoste and 
+<a href="http://www.elis.ugent.be/~leeckhou" target="_new">Lieven Eeckhout</a>
+<p><i><b><a href="http://www.iiswc.org/iiswc2006/">IISWC2006</a></b>, Oct. 2006; San Jose, CA (US)</i></p>
+</li>
+<li>
+<p><i><b>Analyzing Commercial Processor Performance Numbers for Predicting Performance of Applications of Interest</b></i> 
+<br>[<a target="_new" href="../abstracts/SIGMETRICS07.html">abstract</a>; paper: <a href="../pub/hoste07analyzing_SIGMETRICS07_paper.pdf">PDF</a>; <a href="../posters/hoste07analyzing_SIGMETRICS07_poster.pdf">poster</a> ]</p>
+by 
+Kenneth Hoste, <a href="http://www.elis.ugent.be/~leeckhou" target="_new">Lieven Eeckhout</a> and 
+<a href="http://www.cs.kuleuven.ac.be/~hendrik" target="_new">Hendrik Blockeel</a>
+<p><i><b><a href="http://www.cs.cmu.edu/~sigm07/">SIGMETRICS'07</a></b>, June 2007; San Diego, CA (US)</i></p>
+</li>
+<li><p><i><b>Characterizing the Unique and Diverse Behaviors in Existing and Emerging General-Purpose and Domain-Specific Benchmark Suites</b></i><br>[<a href="../pub/hoste08characterizing_ISPASS08_paper.pdf">PDF</a>]</p>
+by Kenneth Hoste and <a href="http://www.elis.ugent.be/~leeckhou" target="_new">Lieven Eeckhout</a>
+<p><i><b><a href="http://ispass.org/ispass2008">ISPASS-2008</a></b>, April. 2008; Austin, TX (US)</i></p>
+</li>
+<li><p><i><b>Scheduling on Heterogeneous Multicore Processors Using Architectural Signatures</b></i><br>[<a href="../pub/shelepov08scheduling_WIOSCA08_paper.pdf">PDF</a>]</p>
+by Daniel Shelepov and Alexandra Fedorova <i>(Simon Fraser University, Vancouver, Canada)</i>
+<p><i><b><a href="http://www.ideal.ece.ufl.edu/wiosca/">WIOSCA-2008</a> (ISCA workshop)</b>, June 2008; Beijing, China</i></p>
+</li>
+<li><p><i><b>HASS: A Scheduler for Heterogeneous Multicore Systems</b></i><br>[<a href="http://www.cs.sfu.ca/~fedorova/papers/HASS.pdf">PDF</a>]</p>
+by Daniel Shelepov, Juan Carlos Saez", Stacey Jeffery°, Alexandra Fedorova,
+Nestor Perez, Zhi Feng Huang, Sergey Blagodurov and Viren Kumar<br>
+<i>(Simon Fraser University, Vancouver, Canada)</i><br>
+<i>(° University of Waterloo, Ontario, Canada)</i><br>
+<i>(" University of Madrid, Spain)</i>
+<p><i><b><a href="http://www.sigops.org/osr.html">Operating Systems Review</a></b>, vol. 43, issue 2, pp. 66-75, April 2009<br>
+(Special Issue on the Interaction among the OS, Compilers and Multicore processors)</i></p>
+</li>
+<li>
+<p><i><b>Analysis, Estimation and Optimization of Computer System Performance Using Machine Learning</b></i><br>
+[<a href="http://boegel.kejo.be/ELIS/pub/phd_dissertation_kehoste_UGent.pdf">PDF</a>]</p>
+Kenneth Hoste, PhD dissertation<br>
+<i>Ghent University (Belgium), September 2010</i>
+</li>
+</ul>
+<hr>
+
+<a name="links"></a>
+<h3>Links</h3>
+
+<ul>
+<li>Pin, a dynamic binary instrumentation tool <a href="http://rogue.colorado.edu/Pin/index.html">[http://rogue.colorado.edu/Pin/index.html]</a></li>
+<li>(backup of) research page of Kenneth Hoste <a href="http://boegel.kejo.be/ELIS">[http://boegel.kejo.be/ELIS]</a></li>
+<li>research page of Lieven Eeckhout <a href="http://www.elis.ugent.be/~leeckhou">[http://www.elis.ugent.be/~leeckhou]</a></li>
+</ul>
+
+</body>
+
+</html>
+
