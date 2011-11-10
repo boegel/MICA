@@ -1,7 +1,7 @@
-/* 
+/*
  * This file is part of MICA, a Pin tool to collect
  * microarchitecture-independent program characteristics using the Pin
- * instrumentation framework. 
+ * instrumentation framework.
  *
  * Please see the README.txt file distributed with the MICA release for more
  * information.
@@ -13,12 +13,12 @@
  *                                                                       *
  *************************************************************************
  *
- * implementation by Kenneth Hoste (Ghent University, Belgium), December 2006 - September 2007
+ * implementation by Kenneth Hoste (Ghent University, Belgium), December 2006 - March 2011
  * based on code written by Lieven Eeckhout (for ATOM on Alpha)
- * 
+ *
  * PLEASE DO NOT REDISTRIBUTE THIS CODE WITHOUT INFORMING THE AUTHORS.
  *
- * contact: kenneth.hoste@elis.ugent.be , lieven.eeckhout@elis.ugent.be
+ * contact: kenneth.hoste@ugent.be , lieven.eeckhout@elis.ugent.be
  *
  */
 
@@ -57,6 +57,9 @@ UINT32 _block_size;
 /* MEMFOOTPRINT */
 UINT32 _page_size;
 
+/* helper */
+int thread_count = 0;
+
 /**********************************************
  *                    MAIN                    *
  **********************************************/
@@ -68,11 +71,11 @@ ofstream log;
 ins_buffer_entry* findInsBufferEntry(ADDRINT a){
 
 	ins_buffer_entry* e;
-	INT64 key = (INT32)(a % MAX_MEM_TABLE_ENTRIES);
+	INT64 key = a % MAX_MEM_TABLE_ENTRIES;
 
 	e = ins_buffer[key];
 
-	if(e != (ins_buffer_entry*)NULL){
+	if(e != NULL){
 		do{
 			if(e->insAddr == a)
 				break;
@@ -80,8 +83,8 @@ ins_buffer_entry* findInsBufferEntry(ADDRINT a){
 		} while(e->next != (ins_buffer_entry*)NULL);
 
 		/* ins address not found, installing */
-		if(e == (ins_buffer_entry*)NULL){
-			e = (ins_buffer_entry*)malloc(sizeof(ins_buffer_entry));
+		if(e == NULL){
+			e = (ins_buffer_entry*)checked_malloc(sizeof(ins_buffer_entry));
 			e->insAddr = a;
 			e->regReadCnt = 0;
 			e->regsRead = NULL;
@@ -100,7 +103,7 @@ ins_buffer_entry* findInsBufferEntry(ADDRINT a){
 	}
 	else{
 		/* new entry in hash table */
-		e = (ins_buffer_entry*)malloc(sizeof(ins_buffer_entry));
+		e = (ins_buffer_entry*)checked_malloc(sizeof(ins_buffer_entry));
 		e->insAddr = a;
 		e->regOpCnt = 0;
 		e->regReadCnt = 0;
@@ -111,32 +114,32 @@ ins_buffer_entry* findInsBufferEntry(ADDRINT a){
 		e->setRead = false;
 		e->setWritten = false;
 	}
-	
+
 	return e;
 }
 
 /* ALL */
 VOID Instruction_all(INS ins, VOID* v){
 	if(interval_size == -1)	{
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_always, IARG_END);
-        }
+	}
 	else{
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_always, IARG_END);
-        }
+	}
 
 	ADDRINT insAddr = INS_Address(ins);
 	ins_buffer_entry* e = findInsBufferEntry(insAddr);
@@ -163,26 +166,26 @@ VOID Fini_all(INT32 code, VOID* v){
 
 /* ILP */
 VOID Instruction_ilp_all_only(INS ins, VOID* v){
-	if(interval_size == -1){	
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+	if(interval_size == -1){
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_always, IARG_END);
-        }
+	}
 	else{
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_always, IARG_END);
-        }
+	}
 
 	ADDRINT insAddr = INS_Address(ins);
 
@@ -196,26 +199,26 @@ VOID Fini_ilp_all_only(INT32 code, VOID* v){
 
 /* ILP_ONE */
 VOID Instruction_ilp_one_only(INS ins, VOID* v){
-	if(interval_size == -1){	
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+	if(interval_size == -1){
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_always, IARG_END);
-        }
+	}
 	else{
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_always, IARG_END);
-        }
+	}
 
 	ADDRINT insAddr = INS_Address(ins);
 
@@ -229,26 +232,26 @@ VOID Fini_ilp_one_only(INT32 code, VOID* v){
 
 /* ITYPES */
 VOID Instruction_itypes_only(INS ins, VOID* v){
-	if(interval_size == -1){	
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+	if(interval_size == -1){
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_always, IARG_END);
-        }
+	}
 	else{
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_always, IARG_END);
-        }
+	}
 
 	instrument_itypes(ins, v);
 }
@@ -259,26 +262,26 @@ VOID Fini_itypes_only(INT32 code, VOID* v){
 
 /* PPM */
 VOID Instruction_ppm_only(INS ins, VOID* v){
-	if(interval_size == -1){	
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+	if(interval_size == -1){
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_always, IARG_END);
-        }
+	}
 	else{
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_always, IARG_END);
-        }
+	}
 
 	instrument_ppm(ins, v);
 }
@@ -289,26 +292,26 @@ VOID Fini_ppm_only(INT32 code, VOID* v){
 
 /* REG */
 VOID Instruction_reg_only(INS ins, VOID* v){
-	if(interval_size == -1){	
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+	if(interval_size == -1){
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_always, IARG_END);
-        }
+	}
 	else{
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_always, IARG_END);
-        }
+	}
 
 	ADDRINT insAddr = INS_Address(ins);
 
@@ -323,26 +326,26 @@ VOID Fini_reg_only(INT32 code, VOID* v){
 
 /* STRIDE */
 VOID Instruction_stride_only(INS ins, VOID* v){
-	if(interval_size == -1){	
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+	if(interval_size == -1){
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_always, IARG_END);
-        }
+	}
 	else{
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_always, IARG_END);
-        }
+	}
 
 	instrument_stride(ins, v);
 }
@@ -353,26 +356,26 @@ VOID Fini_stride_only(INT32 code, VOID* v){
 
 /* MEMFOOTPRINT */
 VOID Instruction_memfootprint_only(INS ins, VOID* v){
-	if(interval_size == -1){	
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+	if(interval_size == -1){
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_always, IARG_END);
-        }
+	}
 	else{
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_always, IARG_END);
-        }
+	}
 
 	instrument_memfootprint(ins, v);
 }
@@ -383,26 +386,26 @@ VOID Fini_memfootprint_only(INT32 code, VOID* v){
 
 /* MEMREUSEDIST */
 VOID Instruction_memreusedist_only(INS ins, VOID* v){
-	if(interval_size == -1){	
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+	if(interval_size == -1){
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_always, IARG_END);
-        }
+	}
 	else{
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_always, IARG_END);
-        }
+	}
 
 	instrument_memreusedist(ins, v);
 }
@@ -414,31 +417,31 @@ VOID Fini_memreusedist_only(INT32 code, VOID* v){
 /* MY TYPE */
 VOID Instruction_custom(INS ins, VOID* v){
 
-	if(interval_size == -1){	
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+	if(interval_size == -1){
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_always, IARG_END);
-        }
+	}
 	else{
-                if(INS_HasRealRep(ins)){
-                        INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
-                        INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
-                }
-                else{
-		        INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
-                }
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
+		}
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_always, IARG_END);
-        }
+	}
 
 	cerr << "Please choose a subset of characteristics you want to use, and remove this message (along with the exit call)" << endl;
 	exit(1);
 	// Choose subset of characteristics, and make the same adjustments in Fini_custom and init_custom below
-	
+
 	//ADDRINT insAddr = INS_Address(ins);
 	//ins_buffer_entry* e = findInsBufferEntry(insAddr);
 
@@ -474,6 +477,17 @@ void init_custom(){
 	//init_memreusedist();
 }
 
+
+VOID ThreadStart(THREADID id, CONTEXT *context, INT32 flags, VOID *data)
+{
+	if (__sync_fetch_and_add(&thread_count, 1))
+	{
+		LOG_MSG("WARNING: Thread creation detected, results can be corrupted!\n");
+		WARNING_MSG("Thread creation detected, results can be corrupted!");
+	}
+}
+
+
 /************
  *   MAIN   *
  ************/
@@ -487,7 +501,7 @@ int main(int argc, char* argv[]){
 	read_config(&log, &interval_size, &mode, &_ilp_win_size, &_block_size, &_page_size, &_itypes_spec_file);
 
 	cerr << "interval_size: " << interval_size << ", mode: " << mode << endl;
-	
+
 	interval_ins_count = 0;
 	interval_ins_count_for_hpc_alignment = 0;
 	total_ins_count = 0;
@@ -502,67 +516,72 @@ int main(int argc, char* argv[]){
 			init_all();
 			PIN_Init(argc, argv);
 			INS_AddInstrumentFunction(Instruction_all, 0);
-    			PIN_AddFiniFunction(Fini_all, 0);
+			PIN_AddFiniFunction(Fini_all, 0);
 			break;
 		case MODE_ILP:
 			init_ilp_all();
 			PIN_Init(argc, argv);
 			INS_AddInstrumentFunction(Instruction_ilp_all_only, 0);
-    			PIN_AddFiniFunction(Fini_ilp_all_only, 0);
+			PIN_AddFiniFunction(Fini_ilp_all_only, 0);
 			break;
 		case MODE_ILP_ONE:
 			init_ilp_one();
 			PIN_Init(argc, argv);
 			INS_AddInstrumentFunction(Instruction_ilp_one_only, 0);
-    			PIN_AddFiniFunction(Fini_ilp_one_only, 0);
+			PIN_AddFiniFunction(Fini_ilp_one_only, 0);
 			break;
 		case MODE_ITYPES:
 			init_itypes();
 			PIN_Init(argc, argv);
 			INS_AddInstrumentFunction(Instruction_itypes_only, 0);
-    			PIN_AddFiniFunction(Fini_itypes_only, 0);
+			PIN_AddFiniFunction(Fini_itypes_only, 0);
 			break;
 		case MODE_PPM:
 			init_ppm();
 			PIN_Init(argc, argv);
 			INS_AddInstrumentFunction(Instruction_ppm_only, 0);
-    			PIN_AddFiniFunction(Fini_ppm_only, 0);
+			PIN_AddFiniFunction(Fini_ppm_only, 0);
 			break;
 		case MODE_REG:
 			init_reg();
 			PIN_Init(argc, argv);
 			INS_AddInstrumentFunction(Instruction_reg_only, 0);
-    			PIN_AddFiniFunction(Fini_reg_only, 0);
+			PIN_AddFiniFunction(Fini_reg_only, 0);
 			break;
 		case MODE_STRIDE:
 			init_stride();
 			PIN_Init(argc, argv);
 			INS_AddInstrumentFunction(Instruction_stride_only, 0);
-    			PIN_AddFiniFunction(Fini_stride_only, 0);
+			PIN_AddFiniFunction(Fini_stride_only, 0);
 			break;
 		case MODE_MEMFOOTPRINT:
 			init_memfootprint();
 			PIN_Init(argc, argv);
 			INS_AddInstrumentFunction(Instruction_memfootprint_only, 0);
-    			PIN_AddFiniFunction(Fini_memfootprint_only, 0);
+			PIN_AddFiniFunction(Fini_memfootprint_only, 0);
 			break;
 		case MODE_MEMREUSEDIST:
 			init_memreusedist();
 			PIN_Init(argc, argv);
 			INS_AddInstrumentFunction(Instruction_memreusedist_only, 0);
-    			PIN_AddFiniFunction(Fini_memreusedist_only, 0);
+			PIN_AddFiniFunction(Fini_memreusedist_only, 0);
 			break;
 		case MODE_CUSTOM:
 			init_custom();
 			PIN_Init(argc, argv);
 			INS_AddInstrumentFunction(Instruction_custom, 0);
-    			PIN_AddFiniFunction(Fini_custom, 0);
+			PIN_AddFiniFunction(Fini_custom, 0);
 			break;
 		default:
 			cerr << "FATAL ERROR: Unknown mode while trying to allocate memory for Pin tool!" << endl;
 			log << "FATAL ERROR: Unknown mode while trying to allocate memory for Pin tool!" << endl;
 			exit(1);
 	}
+
+	// The tool does not handle multithreaded programs.
+	// Since results might be bogus, we print a warning
+	// when presence of multiple threads is detected by PIN.
+	PIN_AddThreadStartFunction(ThreadStart, NULL);
 
 	// starts program, never returns
 	PIN_StartProgram();

@@ -1,30 +1,42 @@
-/* 
+/*
  * This file is part of MICA, a Pin tool to collect
  * microarchitecture-independent program characteristics using the Pin
- * instrumentation framework. 
+ * instrumentation framework.
  *
  * Please see the README.txt file distributed with the MICA release for more
  * information.
  */
 
 /* standard library includes */
-//#include <stdio.h>
-#include <iostream>
-#include <fstream>
-using namespace std;
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+
+#include <fstream>
+#include <iostream>
+using namespace std;
 
 /* Pin includes */
 #include "pin.H"
 
-#ifndef MICA
 
+#ifndef MICA
 #define MICA
-//#define LOG_MSG(str, a...) fprintf(log, str, ##a); fflush(log);
-//#define ERROR(str, a...) fprintf(stderr, str, ##a);
-//#define DEBUG_MSG(str, a...) fprintf(stderr, str, ##a);
+
+/* *** conditional debugging *** */
+
+#define LOG_MSG(x) log << x << endl;
+#define DEBUG_MSG(x) cerr << "DEBUG: " << x << endl;
+
+#define WARNING_MSG(x) cerr << "WARNING: " << x << endl;
+#define ERROR_MSG(x) cerr << "ERROR: " << x << endl;
+
+
+/* *** utility macros *** */
+
+#define BITS_TO_MASK(x) ((1ull << (x)) - 1ull)
+#define BITS_TO_COUNT(x) (1ull << (x))
+
 
 /* *** defines *** */
 
@@ -34,10 +46,14 @@ using namespace std;
 
 #define ILP_WIN_SIZE_BASE 32
 
-#define MAX_MEM_ENTRIES 65536
-#define LOG_MAX_MEM_ENTRIES 16
+// number of stack entries in single hash table item
+#define LOG_MAX_MEM_ENTRIES     16
+#define MAX_MEM_ENTRIES         BITS_TO_COUNT(LOG_MAX_MEM_ENTRIES)
+#define MASK_MAX_MEM_ENTRIES    BITS_TO_MASK(LOG_MAX_MEM_ENTRIES)
+
 #define LOG_MAX_MEM_BLOCK LOG_MAX_MEM_ENTRIES
 #define MAX_MEM_BLOCK MAX_MEM_ENTRIES
+
 #define MAX_MEM_BLOCK_ENTRIES 65536
 #define MAX_MEM_TABLE_ENTRIES 12289 // hash table size, should be a prime number (769, 1543, 3079, 6151, 12289, 24593, 49157, 98317, 196613, 393241, 786433)
 
@@ -58,6 +74,6 @@ const UINT32 history_lengths[NUM_HIST_LENGTHS] = {12,8,4};
 
 /* MEMREUSEDIST */
 
-#define BUCKET_CNT 19
+#define BUCKET_CNT 19 // number of reuse distance buckets to use
 
 #endif

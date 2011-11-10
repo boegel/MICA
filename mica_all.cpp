@@ -1,7 +1,7 @@
-/* 
+ /*
  * This file is part of MICA, a Pin tool to collect
  * microarchitecture-independent program characteristics using the Pin
- * instrumentation framework. 
+ * instrumentation framework.
  *
  * Please see the README.txt file distributed with the MICA release for more
  * information.
@@ -48,18 +48,21 @@ void init_all(){
 
 ADDRINT returnArg(BOOL arg){
 
-        return arg;
+	return arg;
 }
 
 VOID all_instr_full_count_always(){
 
-        total_ins_count++;
-	
-        /*if(total_ins_count % PROGRESS_THRESHOLD == 0){
-		FILE* f = fopen("mica_progress.txt","w");
-		fprintf(f,"%lld*10^7 instructions analyzed\n", (long long)total_ins_count/PROGRESS_THRESHOLD);
-		fclose(f);
-	}*/
+	total_ins_count++;
+
+#ifdef VERBOSE
+	if (__builtin_expect (total_ins_count % PROGRESS_THRESHOLD == 0, false)) {
+		ofstream progress_file;
+		progress_file.open ("mica_progress.txt", ios::out | ios::trunc);
+		progress_file << total_ins_count << " instructions analyzed" << endl;
+		progress_file.close ();
+	}
+#endif
 }
 
 VOID all_instr_full_count_for_hpc_alignment_no_rep(){
@@ -67,32 +70,35 @@ VOID all_instr_full_count_for_hpc_alignment_no_rep(){
 }
 
 VOID all_instr_full_count_for_hpc_alignment_with_rep(UINT32 repCnt){
-        if(repCnt > 0){
-                total_ins_count_for_hpc_alignment++;
-        }
+	if(repCnt > 0){
+		total_ins_count_for_hpc_alignment++;
+	}
 }
 
 VOID all_instr_intervals_count_always(){
-        total_ins_count++;
+	total_ins_count++;
 	interval_ins_count++;
 
-	/*if(total_ins_count % PROGRESS_THRESHOLD == 0){
-		FILE* f = fopen("mica_progress.txt","w");
-		fprintf(f,"%lld*10^7 instructions analyzed\n", (long long)total_ins_count/PROGRESS_THRESHOLD);
-		fclose(f);
-	}*/
+#ifdef VERBOSE
+	if (__builtin_expect(total_ins_count % PROGRESS_THRESHOLD == 0, false)) {
+		ofstream progress_file;
+		progress_file.open("mica_progress.txt", ios::out | ios::trunc);
+		progress_file << total_ins_count << " instructions analyzed" << endl;
+		progress_file.close();
+	}
+#endif
 }
 
 VOID all_instr_intervals_count_for_hpc_alignment_no_rep(){
-        total_ins_count_for_hpc_alignment++;
-        interval_ins_count_for_hpc_alignment++;
+	total_ins_count_for_hpc_alignment++;
+	interval_ins_count_for_hpc_alignment++;
 }
 
 VOID all_instr_intervals_count_for_hpc_alignment_with_rep(UINT32 repCnt){
-        if(repCnt > 0){
-                total_ins_count_for_hpc_alignment++;
-                interval_ins_count_for_hpc_alignment++;
-        }
+	if(repCnt > 0){
+		total_ins_count_for_hpc_alignment++;
+		interval_ins_count_for_hpc_alignment++;
+	}
 }
 
 ADDRINT all_buffer_instruction_2reads_write(void* _e, ADDRINT read1_addr, ADDRINT read2_addr, ADDRINT read_size, UINT32 stride_index_memread1, UINT32 stride_index_memread2, ADDRINT write_addr, ADDRINT write_size, UINT32 stride_index_memwrite){
@@ -108,11 +114,11 @@ ADDRINT all_buffer_instruction_2reads_write(void* _e, ADDRINT read1_addr, ADDRIN
 	memreusedist_memRead(read1_addr, read_size); // memreusedist
 	memreusedist_memRead(read2_addr, read_size);
 	//return ilp_buffer_instruction_2reads_write(_e, read1_addr, read2_addr, read_size, write_addr, write_size);
-        ilp_buffer_instruction_only(_e);
-        ilp_buffer_instruction_read(read1_addr, read_size);
-        ilp_buffer_instruction_read2(read2_addr);
-        ilp_buffer_instruction_write(write_addr, write_size);
-        return ilp_buffer_instruction_next();
+	ilp_buffer_instruction_only(_e);
+	ilp_buffer_instruction_read(read1_addr, read_size);
+	ilp_buffer_instruction_read2(read2_addr);
+	ilp_buffer_instruction_write(write_addr, write_size);
+	return ilp_buffer_instruction_next();
 }
 
 ADDRINT all_buffer_instruction_read_write(void* _e, ADDRINT read1_addr, ADDRINT read_size, UINT32 stride_index_memread1, ADDRINT write_addr, ADDRINT write_size, UINT32 stride_index_memwrite){
@@ -125,10 +131,10 @@ ADDRINT all_buffer_instruction_read_write(void* _e, ADDRINT read1_addr, ADDRINT 
 	memOp(write_addr, write_size);
 	memreusedist_memRead(read1_addr, read_size); // memreusedist
 	//return ilp_buffer_instruction_read_write(_e, read1_addr, read_size, write_addr, write_size);
-        ilp_buffer_instruction_only(_e);
-        ilp_buffer_instruction_read(read1_addr, read_size);
-        ilp_buffer_instruction_write(write_addr, write_size);
-        return ilp_buffer_instruction_next();
+	ilp_buffer_instruction_only(_e);
+	ilp_buffer_instruction_read(read1_addr, read_size);
+	ilp_buffer_instruction_write(write_addr, write_size);
+	return ilp_buffer_instruction_next();
 }
 
 ADDRINT all_buffer_instruction_2reads(void* _e, ADDRINT read1_addr, ADDRINT read2_addr, ADDRINT read_size, UINT32 stride_index_memread1, UINT32 stride_index_memread2){
@@ -141,10 +147,10 @@ ADDRINT all_buffer_instruction_2reads(void* _e, ADDRINT read1_addr, ADDRINT read
 	memreusedist_memRead(read1_addr, read_size); // memreusedist
 	memreusedist_memRead(read2_addr, read_size);
 	//return ilp_buffer_instruction_2reads(_e, read1_addr, read2_addr, read_size);
-        ilp_buffer_instruction_only(_e);
-        ilp_buffer_instruction_read(read1_addr, read_size);
-        ilp_buffer_instruction_read2(read2_addr);
-        return ilp_buffer_instruction_next();
+	ilp_buffer_instruction_only(_e);
+	ilp_buffer_instruction_read(read1_addr, read_size);
+	ilp_buffer_instruction_read2(read2_addr);
+	return ilp_buffer_instruction_next();
 }
 
 ADDRINT all_buffer_instruction_read(void* _e, ADDRINT read1_addr, ADDRINT read_size, UINT32 stride_index_memread1){
@@ -154,9 +160,9 @@ ADDRINT all_buffer_instruction_read(void* _e, ADDRINT read1_addr, ADDRINT read_s
 	memOp(read1_addr, read_size); // memfootprint
 	memreusedist_memRead(read1_addr, read_size); // memreusedist
 	//return ilp_buffer_instruction_read(_e, read1_addr, read_size);
-        ilp_buffer_instruction_only(_e);
-        ilp_buffer_instruction_read(read1_addr, read_size);
-        return ilp_buffer_instruction_next();
+	ilp_buffer_instruction_only(_e);
+	ilp_buffer_instruction_read(read1_addr, read_size);
+	return ilp_buffer_instruction_next();
 }
 
 ADDRINT all_buffer_instruction_write(void* _e, ADDRINT write_addr, ADDRINT write_size, UINT32 stride_index_memwrite){
@@ -165,21 +171,21 @@ ADDRINT all_buffer_instruction_write(void* _e, ADDRINT write_addr, ADDRINT write
 	writeMem_stride(stride_index_memwrite, write_addr, write_size);
 	memOp(write_addr, write_size); // memfootprint
 	//return ilp_buffer_instruction_write(_e, write_addr, write_size);
-        ilp_buffer_instruction_only(_e);
-        ilp_buffer_instruction_write(write_addr, write_size);
-        return ilp_buffer_instruction_next();
+	ilp_buffer_instruction_only(_e);
+	ilp_buffer_instruction_write(write_addr, write_size);
+	return ilp_buffer_instruction_next();
 }
 
 ADDRINT all_buffer_instruction(void* _e){
 
 	//return ilp_buffer_instruction(_e);
-        ilp_buffer_instruction_only(_e);
-        return ilp_buffer_instruction_next();
+	ilp_buffer_instruction_only(_e);
+	return ilp_buffer_instruction_next();
 }
 
 VOID all_instr_full(VOID* _e, ADDRINT instrAddr, ADDRINT size){
 	reg_instr_full(_e);
-	instrMem(instrAddr, size);	
+	instrMem(instrAddr, size);
 }
 
 ADDRINT all_instr_intervals(VOID* _e, ADDRINT instrAddr, ADDRINT size){
@@ -197,7 +203,7 @@ VOID all_instr_interval(){
 
 	ppm_instr_interval_output();
 	ppm_instr_interval_reset();
-	
+
 	reg_instr_interval_output();
 	reg_instr_interval_reset();
 
@@ -216,15 +222,15 @@ VOID all_instr_interval(){
 
 VOID all_instr_interval_for_ilp(){
 
-        // save these, because empty_ilp_buffer_all resets them
-        INT64 interval_ins_count_backup = interval_ins_count;
-        INT64 interval_ins_count_for_hpc_alignment_backup = interval_ins_count_for_hpc_alignment;
+	// save these, because empty_ilp_buffer_all resets them
+	INT64 interval_ins_count_backup = interval_ins_count;
+	INT64 interval_ins_count_for_hpc_alignment_backup = interval_ins_count_for_hpc_alignment;
 
-        empty_ilp_buffer_all();
-       
-        // restore
-        interval_ins_count = interval_ins_count_backup;
-        interval_ins_count_for_hpc_alignment = interval_ins_count_for_hpc_alignment_backup;
+	empty_ilp_buffer_all();
+
+	// restore
+	interval_ins_count = interval_ins_count_backup;
+	interval_ins_count_for_hpc_alignment = interval_ins_count_for_hpc_alignment_backup;
 }
 
 VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
@@ -250,7 +256,7 @@ VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 		// register reads and memory reads determine the issue time
 		maxNumRegsCons = INS_MaxNumRRegs(ins);
 
-		regReadCnt = 0;	
+		regReadCnt = 0;
 		for(i=0; i < maxNumRegsCons; i++){
 			reg = INS_RegR(ins, i);
 			//assert((UINT32)reg < MAX_NUM_REGS);
@@ -260,17 +266,13 @@ VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 				regReadCnt++;
 			}
 		}
-		
+
 		e->regReadCnt = regReadCnt;
-		e->regsRead = (REG*)malloc(regReadCnt*sizeof(REG));
-		/*if((e->regsRead = (REG*)malloc(regReadCnt*sizeof(REG))) == (REG*)NULL){
-			fprintf(stderr,"ERROR: Could not allocate regsRead memory for ins 0x%x\n", (unsigned int)e->insAddr);
-			exit(1);
-		}*/
+		e->regsRead = (REG*)checked_malloc(regReadCnt*sizeof(REG));
 
 		regReadCnt = 0;
 		for(i=0; i < maxNumRegsCons; i++){
-	
+
 			reg = INS_RegR(ins, i);
 
 			//assert((UINT32)reg < MAX_NUM_REGS);
@@ -282,11 +284,11 @@ VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 		}
 
 		e->setRead = true;
-		
+
 	}
 
 	// buffer register writes per static instruction
-	if(!e->setWritten){	
+	if(!e->setWritten){
 		maxNumRegsProd = INS_MaxNumWRegs(ins);
 
 		regWriteCnt = 0;
@@ -303,11 +305,7 @@ VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 		}
 
 		e->regWriteCnt = regWriteCnt;
-		e->regsWritten = (REG*)malloc(regWriteCnt*sizeof(REG));
-		/*if((e->regsWritten = (REG*)malloc(regWriteCnt*sizeof(REG))) == (REG*)NULL){
-			fprintf(stderr,"ERROR: Could not allocate regsRead memory for ins 0x%x\n", (unsigned int)e->insAddr);
-			exit(1);
-		}*/	
+		e->regsWritten = (REG*)checked_malloc(regWriteCnt*sizeof(REG));
 
 		regWriteCnt = 0;
 		for(i=0; i < maxNumRegsProd; i++){
@@ -321,12 +319,12 @@ VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 				e->regsWritten[regWriteCnt++] = reg;
 			}
 		}
-	
+
 		e->setWritten = true;
 	}
 
 	if(!e->setRegOpCnt){
-		regOpCnt = 0;	
+		regOpCnt = 0;
 		opCnt = INS_OperandCount(ins);
 		for(i = 0; i < opCnt; i++){
 			if(INS_OperandIsReg(ins,i))
@@ -384,14 +382,15 @@ VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)all_buffer_instruction, IARG_PTR, (void*)e, IARG_END);
 		}
 	}
-	/* InsertIfCall returns true if ILP buffer is full */	
+
+	/* InsertIfCall returns true if ILP buffer is full */
 	//INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)empty_ilp_buffer_all, IARG_END);
 	INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_interval_for_ilp, IARG_END); // wrapper for empty_ilp_buffer_all
 
 	/* +++ ITYPES +++ */
 
 	// go over all groups, increase group count if instruction matches that group
-	// group counts are increased at most once per instruction executed, 
+	// group counts are increased at most once per instruction executed,
 	// even if the instruction matches multiple identifiers in that group
 	for(i=0; i < number_of_groups; i++){
 		for(j=0; j < group_ids_cnt[i]; j++){
@@ -428,7 +427,7 @@ VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 						}
 					}
 					else{
-                                                cerr << "ERROR! Unknown identifier type specified (" << group_identifiers[i][j].type << ")" << endl;
+						cerr << "ERROR! Unknown identifier type specified (" << group_identifiers[i][j].type << ")" << endl;
 					}
 				}
 			}
@@ -439,32 +438,31 @@ VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 	if( !categorized ){
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count, IARG_UINT32, (unsigned int)number_of_groups, IARG_END);
 
-                // check whether this category is already known in the 'other' group
-                for(i=0; i < other_ids_cnt; i++){
-                        if(strcmp(other_group_identifiers[i].str, cat) == 0)
-                                break;
-                }
+		// check whether this category is already known in the 'other' group
+		for(i=0; i < other_ids_cnt; i++){
+			if(strcmp(other_group_identifiers[i].str, cat) == 0)
+				break;
+		}
 
-                // if a new instruction category is found, add it to the set
-                if(i == other_ids_cnt){
-                        other_group_identifiers[other_ids_cnt].type = identifier_type::ID_TYPE_CATEGORY;
-                        other_group_identifiers[other_ids_cnt].str = (char*)malloc((strlen(cat)+1)*sizeof(char));
-                        strcpy(other_group_identifiers[other_ids_cnt].str, cat);
-                        other_ids_cnt++;
-                }
+		// if a new instruction category is found, add it to the set
+		if(i == other_ids_cnt){
+			other_group_identifiers[other_ids_cnt].type = identifier_type::ID_TYPE_CATEGORY;
+			other_group_identifiers[other_ids_cnt].str = checked_strdup(cat);
+			other_ids_cnt++;
+		}
 
-                // prepare for (possible) next category
-                if(other_ids_cnt == other_ids_max_cnt){
-                        other_ids_max_cnt *= 2;
-                        other_group_identifiers = (identifier*)realloc(other_group_identifiers, other_ids_max_cnt*sizeof(identifier));
-                }
+		// prepare for (possible) next category
+		if(other_ids_cnt == other_ids_max_cnt){
+			other_ids_max_cnt *= 2;
+			other_group_identifiers = (identifier*)checked_realloc(other_group_identifiers, other_ids_max_cnt*sizeof(identifier));
+		}
 	}
 
 	/* +++ PPM *** */
 	if(strcmp(cat,"COND_BR") == 0){
 		instrument_ppm_cond_br(ins);
 	}
-	/* inserting calls for counting instructions is done in mica.cpp */	
+	/* inserting calls for counting instructions is done in mica.cpp */
 	if(interval_size != -1){
 		INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals, IARG_PTR, (void*)e, IARG_ADDRINT, INS_Address(ins), IARG_ADDRINT, (ADDRINT)INS_Size(ins), IARG_END);
 		/* only called if interval is 'full' */

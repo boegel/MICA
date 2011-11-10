@@ -1,7 +1,7 @@
-/* 
+/*
  * This file is part of MICA, a Pin tool to collect
  * microarchitecture-independent program characteristics using the Pin
- * instrumentation framework. 
+ * instrumentation framework.
  *
  * Please see the README.txt file distributed with the MICA release for more
  * information.
@@ -44,11 +44,11 @@ void init_memfootprint(){
 		ImemCacheWorkingSetTable[i] = (nlist*) NULL;
 		ImemPageWorkingSetTable[i] = (nlist*) NULL;
 	}
-        
-        memfootprint_block_size = _block_size;
-        page_size = _page_size;
 
-	if(interval_size != -1){		
+	memfootprint_block_size = _block_size;
+	page_size = _page_size;
+
+	if(interval_size != -1){
 		output_file_memfootprint.open("memfootprint_phases_int_pin.out", ios::out|ios::trunc);
 		output_file_memfootprint.close();
 	}
@@ -65,42 +65,42 @@ VOID memOp(ADDRINT effMemAddr, ADDRINT size){
 	addr = effMemAddr >> memfootprint_block_size;
 	endAddr = (effMemAddr + size - 1) >> memfootprint_block_size;
 
-        if(size > 0){
-                for(a = addr; a <= endAddr; a++){
+	if(size > 0){
+		for(a = addr; a <= endAddr; a++){
 
-                        upperAddr = a >> LOG_MAX_MEM_BLOCK;
-                        indexInChunk = a ^ (upperAddr << LOG_MAX_MEM_BLOCK);
+			upperAddr = a >> LOG_MAX_MEM_BLOCK;
+			indexInChunk = a ^ (upperAddr << LOG_MAX_MEM_BLOCK);
 
-                        chunk = lookup(DmemCacheWorkingSetTable, upperAddr);
-                        if(chunk == (memNode*)NULL)
-                                chunk = install(DmemCacheWorkingSetTable, upperAddr);
+			chunk = lookup(DmemCacheWorkingSetTable, upperAddr);
+			if(chunk == (memNode*)NULL)
+				chunk = install(DmemCacheWorkingSetTable, upperAddr);
 
-                        //assert(indexInChunk >= 0 && indexInChunk < MAX_MEM_BLOCK);
-                        chunk->numReferenced[indexInChunk] = true;
+			//assert(indexInChunk >= 0 && indexInChunk < MAX_MEM_BLOCK);
+			chunk->numReferenced[indexInChunk] = true;
 
-                }
-        }
+		}
+	}
 
 	/* D-stream (4KB) page block memory footprint */
 
 	addr = effMemAddr >> page_size;
 	endAddr = (effMemAddr + size - 1) >> page_size;
 
-        if(size > 0){
-                for(a = addr; a <= endAddr; a++){
+	if(size > 0){
+		for(a = addr; a <= endAddr; a++){
 
-                        upperAddr = a >> LOG_MAX_MEM_BLOCK;
-                        indexInChunk = a ^ (upperAddr << LOG_MAX_MEM_BLOCK);
+			upperAddr = a >> LOG_MAX_MEM_BLOCK;
+			indexInChunk = a ^ (upperAddr << LOG_MAX_MEM_BLOCK);
 
-                        chunk = lookup(DmemPageWorkingSetTable, upperAddr);
-                        if(chunk == (memNode*)NULL)
-                                chunk = install(DmemPageWorkingSetTable, upperAddr);
+			chunk = lookup(DmemPageWorkingSetTable, upperAddr);
+			if(chunk == (memNode*)NULL)
+				chunk = install(DmemPageWorkingSetTable, upperAddr);
 
-                        //assert(indexInChunk >= 0 && indexInChunk < MAX_MEM_BLOCK);
-                        chunk->numReferenced[indexInChunk] = true;
+			//assert(indexInChunk >= 0 && indexInChunk < MAX_MEM_BLOCK);
+			chunk->numReferenced[indexInChunk] = true;
 
-                }
-        }
+		}
+	}
 }
 
 VOID instrMem(ADDRINT instrAddr, ADDRINT size){
@@ -114,42 +114,42 @@ VOID instrMem(ADDRINT instrAddr, ADDRINT size){
 
 	addr = instrAddr >> memfootprint_block_size;
 	endAddr = (instrAddr + size - 1) >> memfootprint_block_size;
-        
-        if(size > 0){
-                for(a = addr; a <= endAddr; a++){
 
-                        upperAddr = a >> LOG_MAX_MEM_BLOCK;
-                        indexInChunk = a ^ (upperAddr << LOG_MAX_MEM_BLOCK);
+	if(size > 0){
+		for(a = addr; a <= endAddr; a++){
 
-                        chunk = lookup(ImemCacheWorkingSetTable, upperAddr);
-                        if(chunk == (memNode*)NULL)
-                                chunk = install(ImemCacheWorkingSetTable, upperAddr);
+			upperAddr = a >> LOG_MAX_MEM_BLOCK;
+			indexInChunk = a ^ (upperAddr << LOG_MAX_MEM_BLOCK);
 
-                        //assert(indexInChunk >= 0 && indexInChunk < MAX_MEM_BLOCK);
-                        chunk->numReferenced[indexInChunk] = true;
+			chunk = lookup(ImemCacheWorkingSetTable, upperAddr);
+			if(chunk == (memNode*)NULL)
+				chunk = install(ImemCacheWorkingSetTable, upperAddr);
 
-                }
-        }
+			//assert(indexInChunk >= 0 && indexInChunk < MAX_MEM_BLOCK);
+			chunk->numReferenced[indexInChunk] = true;
+
+		}
+	}
 
 	/* I-stream (4KB) page block memory footprint */
 
 	addr = instrAddr >> page_size;
 	endAddr = (instrAddr + size - 1) >> page_size;
 
-        if(size > 0){
-                for(a = addr; a <= endAddr; a++){
+	if(size > 0){
+		for(a = addr; a <= endAddr; a++){
 
-                        upperAddr = a >> LOG_MAX_MEM_BLOCK;
-                        indexInChunk = a ^ (upperAddr << LOG_MAX_MEM_BLOCK);
+			upperAddr = a >> LOG_MAX_MEM_BLOCK;
+			indexInChunk = a ^ (upperAddr << LOG_MAX_MEM_BLOCK);
 
-                        chunk = lookup(ImemPageWorkingSetTable, upperAddr);
-                        if(chunk == (memNode*)NULL)
-                                chunk = install(ImemPageWorkingSetTable, upperAddr);
+			chunk = lookup(ImemPageWorkingSetTable, upperAddr);
+			if(chunk == (memNode*)NULL)
+				chunk = install(ImemPageWorkingSetTable, upperAddr);
 
-                        //assert(indexInChunk >= 0 && indexInChunk < MAX_MEM_BLOCK);
-                        chunk->numReferenced[indexInChunk] = true;
-                }
-        }
+			//assert(indexInChunk >= 0 && indexInChunk < MAX_MEM_BLOCK);
+			chunk->numReferenced[indexInChunk] = true;
+		}
+	}
 }
 
 VOID memfootprint_instr_full(ADDRINT instrAddr, ADDRINT size){
@@ -171,12 +171,12 @@ VOID memfootprint_instr_interval_output(){
 
 	output_file_memfootprint.open("memfootprint_phases_int_pin.out", ios::out|ios::app);
 
-	int i,j;
+	ADDRINT i,j;
 	nlist* np;
-	long long DmemCacheWorkingSetSize = 0L;
-	long long DmemPageWorkingSetSize = 0L;
-	long long ImemCacheWorkingSetSize = 0L;
-	long long ImemPageWorkingSetSize = 0L;
+	long long DmemCacheWorkingSetSize = 0;
+	long long DmemPageWorkingSetSize = 0;
+	long long ImemCacheWorkingSetSize = 0;
+	long long ImemPageWorkingSetSize = 0;
 
 	for (i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
 		for (np = DmemCacheWorkingSetTable [i]; np != (nlist*) NULL; np = np->next) {
@@ -214,16 +214,16 @@ VOID memfootprint_instr_interval_output(){
 			}
 		}
 	}
-        output_file_memfootprint << DmemCacheWorkingSetSize << " " << DmemPageWorkingSetSize << " " << ImemCacheWorkingSetSize << " " << ImemPageWorkingSetSize << endl; 
+	output_file_memfootprint << DmemCacheWorkingSetSize << " " << DmemPageWorkingSetSize << " " << ImemCacheWorkingSetSize << " " << ImemPageWorkingSetSize << endl;
 	output_file_memfootprint.close();
 }
 
 VOID memfootprint_instr_interval_reset(){
 
-	int i;
+	ADDRINT i;
 	nlist* np;
 
-	/* clean used memory, to avoid memory shortage for long (CPU2006) benchmarks */ 	
+	/* clean used memory, to avoid memory shortage for long (CPU2006) benchmarks */
 	nlist* np_rm;
 	for(i=0; i < MAX_MEM_TABLE_ENTRIES; i++){
 		np = DmemCacheWorkingSetTable[i];
@@ -273,7 +273,7 @@ VOID memfootprint_instr_interval(){
 
 /* instrumenting (instruction level) */
 VOID instrument_memfootprint(INS ins, VOID* v){
-	
+
 	if(INS_IsMemoryRead(ins)){
 
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)memOp, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_END);
@@ -288,7 +288,7 @@ VOID instrument_memfootprint(INS ins, VOID* v){
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)memOp, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
 	}
 
-	if(interval_size == -1)	
+	if(interval_size == -1)
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)memfootprint_instr_full, IARG_ADDRINT, INS_Address(ins), IARG_ADDRINT, (ADDRINT)INS_Size(ins), IARG_END);
 	else{
 		INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)memfootprint_instr_intervals, IARG_ADDRINT, INS_Address(ins), IARG_ADDRINT, (ADDRINT)INS_Size(ins), IARG_END);
@@ -299,7 +299,7 @@ VOID instrument_memfootprint(INS ins, VOID* v){
 /* finishing... */
 VOID fini_memfootprint(INT32 code, VOID* v){
 
-	int i,j;
+	ADDRINT i,j;
 	nlist* np;
 	long long DmemCacheWorkingSetSize = 0L;
 	long long DmemPageWorkingSetSize = 0L;
@@ -349,7 +349,7 @@ VOID fini_memfootprint(INT32 code, VOID* v){
 			}
 		}
 	}
-        output_file_memfootprint << DmemCacheWorkingSetSize << " " << DmemPageWorkingSetSize << " " << ImemCacheWorkingSetSize << " " << ImemPageWorkingSetSize << endl; 
+	output_file_memfootprint << DmemCacheWorkingSetSize << " " << DmemPageWorkingSetSize << " " << ImemCacheWorkingSetSize << " " << ImemPageWorkingSetSize << endl;
 	output_file_memfootprint << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
 	output_file_memfootprint.close();
 }

@@ -1,3 +1,19 @@
+March 31th 2011
+--------------
+
+MICA v0.32
+
+- significant code cleanup by Petr Tuma; notes:
+        * cleaned up some redundant NULL pointer casts
+        * cleaned up names of LRU stack entry references
+        * systematic testing of malloc return value in most of the tool code
+        * added warning on presence of multiple threads
+        * replaced sprintf with string streams
+	* added branch prediction hints using __builtin_expect where appropriate
+- guard tracking progress in mica_progress.txt with a preprocessor flag (-DVERBOSE)
+- test MICA built using the Intel C++ compiler, and document how to build it using
+  icpc in the README (TODO: benchmark the performance difference)
+
 February 28th 2011
 ------------------
 
@@ -17,7 +33,7 @@ MICA v0.3
         - instruction groups used in itypes analysis can be specified by the user now,
           using a itypes.spec file; specify the filename in mica.conf using an entry like:
                 itypes_spec_file: <filename>
-        - by default, the old instruction groups are used 
+        - by default, the old instruction groups are used
           (except for SYSCALL, which was added to the group formely known as 'other')
 - made block size in ilp, memfootprint and memreusedist flexible
         - size can be set by specifying 'block_size: <power of 2>' in the mica.conf file
@@ -26,7 +42,7 @@ MICA v0.3
         - size can be set by specifying 'page_size: <power of 2>' in the mica.conf file
         - default page size is 4096 (2^12) bytes
 - possibly expensive assert statements and other sanity checks were removed
-- bug fixes: 
+- bug fixes:
         - memory read size wasn't being used 100% correctly
           in ilp, memfootprint, memreusedist and stride analysis,
           the size was being added to the start address of the read,
@@ -58,7 +74,7 @@ MICA v0.22
 	* fixed issue with instructions in MISC category being counted double (both in 'control flow' and 'other' buckets)
 	  (thanks to Ahmed S. Al-Zawawi for bringing my attention to this issue)
 	* added NOP instructions category
-- adjusted README file to make meaning of different buckets in memreusedist more clear 
+- adjusted README file to make meaning of different buckets in memreusedist more clear
   (thanks to Kshitij Sudan for reporting this)
 
 May 20th 2008

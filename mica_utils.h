@@ -1,7 +1,7 @@
-/* 
+/*
  * This file is part of MICA, a Pin tool to collect
  * microarchitecture-independent program characteristics using the Pin
- * instrumentation framework. 
+ * instrumentation framework.
  *
  * Please see the README.txt file distributed with the MICA release for more
  * information.
@@ -12,6 +12,18 @@
 #ifndef MICA_UTILS
 
 #define MICA_UTILS
+
+
+/* *** utility functions *** */
+
+#define WRAP(x) #x
+#define REWRAP(x) WRAP(x)
+#define LOCATION __BASE_FILE__ ":" __FILE__ ":" REWRAP(__LINE__)
+
+#define checked_malloc(size) ({ void *result = malloc (size); if (__builtin_expect (!result, false)) { ERROR_MSG ("Out of memory at " LOCATION "."); exit (1); }; result; })
+#define checked_strdup(string) ({ char *result = strdup (string); if (__builtin_expect (!result, false)) { ERROR_MSG ("Out of memory at " LOCATION "."); exit (1); }; result; })
+#define checked_realloc(ptr, size) ({ void *result = realloc (ptr, size); if (__builtin_expect (!result, false)) { ERROR_MSG ("Out of memory at " LOCATION "."); exit (1); }; result; })
+
 
 /* *** struct definitions *** */
 

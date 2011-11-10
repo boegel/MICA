@@ -1,7 +1,7 @@
-/* 
+/*
  * This file is part of MICA, a Pin tool to collect
  * microarchitecture-independent program characteristics using the Pin
- * instrumentation framework. 
+ * instrumentation framework.
  *
  * Please see the README.txt file distributed with the MICA release for more
  * information.
@@ -10,6 +10,7 @@
 #include "pin.H"
 
 /* MICA includes */
+#include "mica_utils.h"
 #include "mica_stride.h"
 
 /* Global variables */
@@ -54,17 +55,8 @@ void init_stride(){
 	numWrite = 1024;
 
 	/* allocate memory */
-	if ((instrRead = (ADDRINT*) malloc (numRead * sizeof (ADDRINT))) == (ADDRINT*) NULL) {
-		cerr << "Not enough memory (in main (2))" << endl;
-		exit (0);
-	}
-	//cerr << "malloc " << numRead*sizeof(ADDRINT) << "bytes" << endl;
-
-	if ((instrWrite = (ADDRINT*) malloc (numWrite * sizeof (ADDRINT))) == (ADDRINT*) NULL) {
-		cerr << "Not enough memory (in main (3))" << endl;
-		exit (0);
-	}
-	//cerr << "malloc " << numWrite*sizeof(ADDRINT) << "bytes" << endl;
+	instrRead = (ADDRINT*) checked_malloc(numRead * sizeof(ADDRINT));
+	instrWrite = (ADDRINT*) checked_malloc(numWrite * sizeof(ADDRINT));
 
 	/* initialize */
 	readIndex = 1;
@@ -86,19 +78,12 @@ void init_stride(){
 	numWriteInstrsAnalyzed = 0;
 
 	indices_memRead_size = 1024;
-	if( (indices_memRead = (ADDRINT*) malloc(indices_memRead_size*sizeof(ADDRINT))) == (ADDRINT*)NULL){
-		cerr << "Could not allocate memory for indices_memRead" << endl;
-		exit(1);
-	}
+	indices_memRead = (ADDRINT*) checked_malloc(indices_memRead_size*sizeof(ADDRINT));
 	for (i = 0; i < (int)indices_memRead_size; i++)
 		indices_memRead[i] = 0;
 
 	indices_memWrite_size = 1024;
-	if( (indices_memWrite = (ADDRINT*) malloc(indices_memWrite_size*sizeof(ADDRINT))) == (ADDRINT*)NULL){
-	        cerr << "Could not allocate memory for indices_memWrite" << endl;
-		exit(1);
-	}
-	
+	indices_memWrite = (ADDRINT*) checked_malloc(indices_memWrite_size*sizeof(ADDRINT));
 	for (i = 0; i < (int)indices_memWrite_size; i++)
 		indices_memWrite[i] = 0;
 
@@ -130,10 +115,7 @@ VOID stride_instr_interval_output(){
 	for(i = 0; i < MAX_DISTR; i++){
 		cum += localReadDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) || (i == 262144) ){
-			if(cum > 0)
-				output_file_stride << " " << cum;
-			else
-				output_file_stride << " 0";
+			output_file_stride << " " << cum;
 		}
 		if(i == 262144)
 			break;
@@ -143,10 +125,7 @@ VOID stride_instr_interval_output(){
 	for(i = 0; i < MAX_DISTR; i++){
 		cum += globalReadDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) || (i == 262144) ){
-			if(cum > 0)
-				output_file_stride << " " << cum;
-			else	
-				output_file_stride << " 0";
+			output_file_stride << " " << cum;
 		}
 		if(i == 262144)
 			break;
@@ -157,10 +136,7 @@ VOID stride_instr_interval_output(){
 	for(i = 0; i < MAX_DISTR; i++){
 		cum += localWriteDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) || (i == 262144) ){
-			if(cum > 0)
-				output_file_stride << " " << cum;
-			else	
-				output_file_stride << " 0";
+			output_file_stride << " " << cum;
 		}
 		if(i == 262144)
 			break;
@@ -170,16 +146,10 @@ VOID stride_instr_interval_output(){
 	for(i = 0; i < MAX_DISTR; i++){
 		cum += globalWriteDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) ){
-			if(cum > 0)
-				output_file_stride << " " << cum;
-			else	
-				output_file_stride << " 0";
+			output_file_stride << " " << cum;
 		}
 		if(i == 262144){
-			if(cum > 0)
-				output_file_stride << " " << cum << endl;
-			else	
-				output_file_stride << " 0" << endl;
+			output_file_stride << " " << cum << endl;
 			break;
 		}
 	}
@@ -198,8 +168,8 @@ VOID stride_instr_interval_reset(){
 	numInstrsAnalyzed = 0;
 	numReadInstrsAnalyzed = 0;
 	numWriteInstrsAnalyzed = 0;
-        interval_ins_count = 0;
-        interval_ins_count_for_hpc_alignment = 0;
+	interval_ins_count = 0;
+	interval_ins_count_for_hpc_alignment = 0;
 }
 
 void stride_instr_interval(){
@@ -208,8 +178,8 @@ void stride_instr_interval(){
 	stride_instr_interval_reset();
 }
 
-/* Finds indices for instruction at some address, given some list of index-instruction pairs 
- * Note: the 'nth_occur' argument is needed because a single instruction can have two read memory operands (which both have a different index) */ 
+/* Finds indices for instruction at some address, given some list of index-instruction pairs
+ * Note: the 'nth_occur' argument is needed because a single instruction can have two read memory operands (which both have a different index) */
 UINT32 index_memRead_stride(int nth_occur, ADDRINT ins_addr){
 
 	UINT32 i;
@@ -223,7 +193,7 @@ UINT32 index_memRead_stride(int nth_occur, ADDRINT ins_addr){
 	return 0; /* not found */
 }
 
-/* We don't know the static number of read/write operations until 
+/* We don't know the static number of read/write operations until
  * the entire program has executed, hence we dynamically allocate the arrays */
 VOID reallocate_readArray_stride(){
 
@@ -231,10 +201,10 @@ VOID reallocate_readArray_stride(){
 
 	numRead *= 2;
 
-	ptr = (ADDRINT*) realloc (instrRead, numRead * sizeof (ADDRINT));
+	ptr = (ADDRINT*) checked_realloc(instrRead, numRead * sizeof(ADDRINT));
 	/*if (ptr == (ADDRINT*) NULL) {
 		cerr << "Not enough memory (in reallocate_readArray_stride)" << endl;
-		exit (1);
+		exit(1);
 	}*/
 	instrRead = ptr;
 }
@@ -256,10 +226,10 @@ VOID reallocate_writeArray_stride(){
 
 	numWrite *= 2;
 
-	ptr = (ADDRINT*) realloc (instrWrite, numWrite * sizeof (ADDRINT));
+	ptr = (ADDRINT*) checked_realloc(instrWrite, numWrite * sizeof(ADDRINT));
 	/*if (ptr == (ADDRINT*) NULL) {
 		cerr << "Not enough memory (in reallocate_writeArray_stride)" << endl;
-		exit (1);
+		exit(1);
 	}*/
 	instrWrite = ptr;
 }
@@ -400,7 +370,7 @@ UINT32 stride_index_memRead2(ADDRINT a){
 }
 
 UINT32 stride_index_memWrite(ADDRINT a){
-	UINT32 index = index_memWrite_stride(a);	
+	UINT32 index = index_memWrite_stride(a);
 	if(index < 1){
 		if(writeIndex >= numWrite)
 			reallocate_writeArray_stride();
@@ -416,21 +386,21 @@ VOID instrument_stride(INS ins, VOID* v){
 	UINT32 index;
 
 	if( INS_IsMemoryRead(ins) ){ // instruction has memory read operand
-		
+
 		index = stride_index_memRead1(INS_Address(ins));
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)readMem_stride, IARG_UINT32, index, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_END);
-		
+
 		if( INS_HasMemoryRead2(ins) ){ // second memory read operand
 
 			index = stride_index_memRead2(INS_Address(ins));
 			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)readMem_stride, IARG_UINT32, index, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_END);
 		}
 	}
-	
+
 	if( INS_IsMemoryWrite(ins) ){ // instruction has memory write operand
 		index =  stride_index_memWrite(INS_Address(ins));
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)writeMem_stride, IARG_UINT32, index, IARG_MEMORYWRITE_EA, IARG_MEMORYWRITE_SIZE, IARG_END);
-	
+
 	}
 
 	/* inserting calls for counting instructions (full) is done in mica.cpp */
@@ -460,10 +430,7 @@ VOID fini_stride(INT32 code, VOID* v){
 	for(i = 0; i < MAX_DISTR; i++){
 		cum += localReadDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) || (i == 262144) ){
-			if(cum > 0)
-				output_file_stride << " " << cum;
-			else
-				output_file_stride << " 0";
+			output_file_stride << " " << cum;
 		}
 		if(i == 262144)
 			break;
@@ -473,10 +440,7 @@ VOID fini_stride(INT32 code, VOID* v){
 	for(i = 0; i < MAX_DISTR; i++){
 		cum += globalReadDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) || (i == 262144) ){
-			if(cum > 0)
-				output_file_stride << " " << cum;
-			else	
-				output_file_stride << " 0";
+			output_file_stride << " " << cum;
 		}
 		if(i == 262144)
 			break;
@@ -487,10 +451,7 @@ VOID fini_stride(INT32 code, VOID* v){
 	for(i = 0; i < MAX_DISTR; i++){
 		cum += localWriteDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) || (i == 262144) ){
-			if(cum > 0)
-				output_file_stride << " " << cum;
-			else	
-				output_file_stride << " 0";
+			output_file_stride << " " << cum;
 		}
 		if(i == 262144)
 			break;
@@ -500,16 +461,10 @@ VOID fini_stride(INT32 code, VOID* v){
 	for(i = 0; i < MAX_DISTR; i++){
 		cum += globalWriteDistrib[i];
 		if( (i == 0) || (i == 8) || (i == 64) || (i == 512) || (i == 4096) || (i == 32768) ){
-			if(cum > 0)
-				output_file_stride << " " << cum;
-			else	
-				output_file_stride << " 0";
+			output_file_stride << " " << cum;
 		}
 		if(i == 262144){
-			if(cum > 0)
-				output_file_stride << " " << cum << endl;
-			else	
-				output_file_stride << " 0" << endl;
+			output_file_stride << " " << cum << endl;
 			break;
 		}
 	}

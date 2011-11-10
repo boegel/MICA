@@ -1,7 +1,7 @@
-/* 
+/*
  * This file is part of MICA, a Pin tool to collect
  * microarchitecture-independent program characteristics using the Pin
- * instrumentation framework. 
+ * instrumentation framework.
  *
  * Please see the README.txt file distributed with the MICA release for more
  * information.
@@ -15,14 +15,9 @@
  */
 void setup_mica_log(ofstream *log){
 
-	char name[20];
-	sprintf(name, "mica.log");
-
-	//*log = fopen(name,"w");
-        (*log).open(name, ios::out|ios::trunc);
-	//if( *log == (FILE*)NULL ){
-	if( ! (*log).is_open() ){
-		cerr << "Could not create mica.log, aborting!" << endl;
+	(*log).open("mica.log", ios::out|ios::trunc);
+	if(!(*log).is_open()){
+		ERROR_MSG("Could not create log file, aborting.");
 		exit(1);
 	}
 }
@@ -85,23 +80,14 @@ void read_config(ofstream* log, INT64* intervalSize, MODE* mode, UINT32* _ilp_wi
 
 	(*log) << "Reading config file ..." << endl;
 
-	if((param = (char*)malloc(1000*sizeof(char))) == (char*)NULL){
-		cerr << "ERROR: Could not allocate memory for param" << endl;
-		(*log) << "ERROR: Could not allocate memory for param" << endl;
-		exit(1);	
-	}
-
-	if((val = (char*)malloc(1000*sizeof(char))) == (char*)NULL){
-		cerr << "ERROR: Could not allocate memory for val" << endl;
-		(*log) << "ERROR: Could not allocate memory for val" << endl;
-		exit(1);	
-	}
+	param = (char*)checked_malloc(1000*sizeof(char));
+	val = (char*)checked_malloc(1000*sizeof(char));
 
 	// default values
 	*mode = UNKNOWN_MODE;
 	*_ilp_win_size = 0;
-       	*_block_size = 6; // default block size = 64 bytes (2^6)
-       	*_page_size = 12; // default page size = 4KB (2^12)
+	*_block_size = 6; // default block size = 64 bytes (2^6)
+	*_page_size = 12; // default page size = 4KB (2^12)
 
 	while(!feof(config_file)){
 
@@ -182,7 +168,7 @@ void read_config(ofstream* log, INT64* intervalSize, MODE* mode, UINT32* _ilp_wi
 						}
 						break;
 					}
-				break; 
+				break;
 
 			case INTERVAL_SIZE:
 				cerr << "interval size: " << val << endl;
@@ -198,33 +184,33 @@ void read_config(ofstream* log, INT64* intervalSize, MODE* mode, UINT32* _ilp_wi
 					cerr << "Returning data for each interval of " << *intervalSize << " instructions..." << endl;
 					(*log) << "Returning data for each interval of " << *intervalSize << " instructions..." << endl;
 				}
-				break; 
+				break;
 
 			case ILP_SIZE:
 
-                        	*_ilp_win_size = (UINT32)atoi(val);
-                        	cerr << "ILP window size: " << *_ilp_win_size << endl;
-                        	(*log) << "ILP window size: " << *_ilp_win_size << endl;
-				break; 
+				*_ilp_win_size = (UINT32)atoi(val);
+				cerr << "ILP window size: " << *_ilp_win_size << endl;
+				(*log) << "ILP window size: " << *_ilp_win_size << endl;
+				break;
 
 			case BLOCK_SIZE:
-                        	*_block_size = (UINT32)atoi(val);
-                        	cerr << "block size: 2^" << *_block_size << endl;
-                        	(*log) << "block size: 2^" << *_block_size << endl;
-				break; 
+				*_block_size = (UINT32)atoi(val);
+				cerr << "block size: 2^" << *_block_size << endl;
+				(*log) << "block size: 2^" << *_block_size << endl;
+				break;
 
 			case PAGE_SIZE:
-                        	*_page_size = (UINT32)atoi(val);
-                        	cerr << "page size: 2^" << *_page_size << endl;
-                        	(*log) << "page size: 2^" << *_page_size << endl;
-				break; 
+				*_page_size = (UINT32)atoi(val);
+				cerr << "page size: 2^" << *_page_size << endl;
+				(*log) << "page size: 2^" << *_page_size << endl;
+				break;
 
 			case ITYPES_SPEC_FILE:
-                        	*_itypes_spec_file = (char*)malloc((strlen(val)+1)*sizeof(char));
-                        	strcpy(*_itypes_spec_file, val);
-                        	cerr << "ITYPES spec file: " << *_itypes_spec_file << endl;
-                        	(*log) << "ITYPES spec file: " << *_itypes_spec_file << endl;
-				break; 
+				*_itypes_spec_file = (char*)checked_malloc((strlen(val)+1)*sizeof(char));
+				strcpy(*_itypes_spec_file, val);
+				cerr << "ITYPES spec file: " << *_itypes_spec_file << endl;
+				(*log) << "ITYPES spec file: " << *_itypes_spec_file << endl;
+				break;
 
 			default:
 				cerr << "ERROR: Unknown config parameter specified: " << param << " (" << val << ")" << endl;
@@ -253,7 +239,7 @@ void read_config(ofstream* log, INT64* intervalSize, MODE* mode, UINT32* _ilp_wi
 		(*log) << "ERROR! ERROR! \"ilp_one\" mode was specified, but no window size (ilp_size) was found along with it!" << endl;
 		exit(1);
 	}
-        
+
 	(*log).close();
 
 	free(param);

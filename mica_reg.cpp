@@ -1,7 +1,7 @@
-/* 
+/*
  * This file is part of MICA, a Pin tool to collect
  * microarchitecture-independent program characteristics using the Pin
- * instrumentation framework. 
+ * instrumentation framework.
  *
  * Please see the README.txt file distributed with the MICA release for more
  * information.
@@ -37,35 +37,12 @@ void init_reg(){
 	/* initializing total instruction counts is done in mica.cpp */
 
 	/* allocate memory */
-	if((opCounts = (UINT64*) malloc(MAX_NUM_OPER * sizeof(UINT64))) == (UINT64*)NULL){
-		cerr << "Could not allocate memory" << endl;
-		exit(1);
-	}
-
-	if((regRef = (BOOL*) malloc(MAX_NUM_REGS * sizeof(BOOL))) == (BOOL*)NULL){
-		cerr << "Could not allocate memory" << endl;
-		exit(1);
-	}
-
-	if((PCTable = (INT64*) malloc(MAX_NUM_REGS * sizeof(INT64))) == (INT64*)NULL){
-		cerr << "Could not allocate memory" << endl;
-		exit(1);
-	}
-
-	if((regUseCnt = (INT64*) malloc(MAX_NUM_REGS * sizeof(INT64))) == (INT64*)NULL){
-	        cerr << "Could not allocate memory" << endl;
-		exit(1);
-	}
-
-	if((regUseDistr = (INT64*) malloc(MAX_REG_USE * sizeof(INT64))) == (INT64*)NULL){
-		cerr << "Could not allocate memory" << endl;
-		exit(1);
-	}
-
-	if((regAgeDistr = (INT64*) malloc(MAX_COMM_DIST * sizeof(INT64))) == (INT64*)NULL){
-	        cerr << "Could not allocate memory" << endl;
-		exit(1);
-	}
+	opCounts = (UINT64*) checked_malloc(MAX_NUM_OPER * sizeof(UINT64));
+	regRef = (BOOL*) checked_malloc(MAX_NUM_REGS * sizeof(BOOL));
+	PCTable = (INT64*) checked_malloc(MAX_NUM_REGS * sizeof(INT64));
+	regUseCnt = (INT64*) checked_malloc(MAX_NUM_REGS * sizeof(INT64));
+	regUseDistr = (INT64*) checked_malloc(MAX_REG_USE * sizeof(INT64));
+	regAgeDistr = (INT64*) checked_malloc(MAX_COMM_DIST * sizeof(INT64));
 
 	/* initialize */
 	for(i = 0; i < MAX_NUM_OPER; i++){
@@ -83,7 +60,7 @@ void init_reg(){
 		regAgeDistr[i] = 0;
 	}
 
-	if(interval_size != -1){		
+	if(interval_size != -1){
 		output_file_reg.open("reg_phases_int_pin.out", ios::out|ios::trunc);
 		output_file_reg.close();
 	}
@@ -105,7 +82,7 @@ VOID readRegOp_reg(UINT32 regId){
 
 	/* register usage */
 	regUseCnt[regId]++;
-	regRef[regId] = 1; // (operand) register was referenced 
+	regRef[regId] = 1; // (operand) register was referenced
 }
 
 VOID writeRegOp_reg(UINT32 regId){
@@ -150,7 +127,7 @@ VOID reg_instr_full(VOID* _e){
 ADDRINT reg_instr_intervals(VOID* _e) {
 
 	/* counting instructions is done in all_instr_intervals() */
-	
+
 	ins_buffer_entry* e = (ins_buffer_entry*)_e;
 
 	INT32 i;
@@ -180,7 +157,7 @@ VOID reg_instr_interval_output(){
 	for(i = 1; i < MAX_NUM_OPER; i++){
 		totNumOps += opCounts[i]*i;
 	}
-	output_file_reg << interval_size << " " << totNumOps; 
+	output_file_reg << interval_size << " " << totNumOps;
 
 	/* average degree of use */
 	num = 0;
@@ -193,7 +170,7 @@ VOID reg_instr_interval_output(){
 	for(i = 0; i < MAX_REG_USE; i++){
 		num += i * regUseDistr[i];
 	}
-	output_file_reg << " " << num; 
+	output_file_reg << " " << num;
 
 	/* register dependency distributions */
 	num = 0;
@@ -217,7 +194,7 @@ VOID reg_instr_interval_output(){
 VOID reg_instr_interval_reset(){
 
 	int i;
-	
+
 	for(i = 0; i < MAX_NUM_OPER; i++){
 		opCounts[i] = 0;
 	}
@@ -255,7 +232,7 @@ VOID instrument_reg(INS ins, ins_buffer_entry* e){
 
 		maxNumRegsCons = INS_MaxNumRRegs(ins); // maximum number of register consumations (reads)
 
-		regReadCnt = 0;	
+		regReadCnt = 0;
 		for(i = 0; i < maxNumRegsCons; i++){ // finding all register operands which are read
 			reg = INS_RegR(ins,i);
 			//assert(((UINT32)reg) < MAX_NUM_REGS);
@@ -267,13 +244,9 @@ VOID instrument_reg(INS ins, ins_buffer_entry* e){
 		}
 
 		e->regReadCnt = regReadCnt;
-		e->regsRead = (REG*)malloc(regReadCnt*sizeof(REG));
-		/*if((e->regsRead = (REG*)malloc(regReadCnt*sizeof(REG))) == (REG*)NULL){
-			cerr << "ERROR: Could not allocate regsRead memory for ins 0x" << hex << unsigned int)e->insAddr << endl;
-			exit(1);
-		}*/
-	
-		regReadCnt = 0;	
+		e->regsRead = (REG*) checked_malloc(regReadCnt*sizeof(REG));
+
+		regReadCnt = 0;
 		for(i = 0; i < maxNumRegsCons; i++){ // finding all register operands which are read
 			reg = INS_RegR(ins,i);
 			//assert(((UINT32)reg) < MAX_NUM_REGS);
@@ -300,13 +273,9 @@ VOID instrument_reg(INS ins, ins_buffer_entry* e){
 				regWriteCnt++;
 			}
 		}
-		
+
 		e->regWriteCnt = regWriteCnt;
-		e->regsWritten = (REG*)malloc(regWriteCnt*sizeof(REG));
-		/*if((e->regsWritten = (REG*)malloc(regWriteCnt*sizeof(REG))) == (REG*)NULL){
-			cerr << "ERROR: Could not allocate regsRead memory for ins 0x" << hex << (unsigned int)e->insAddr << endl;
-			exit(1);
-		}*/
+		e->regsWritten = (REG*)checked_malloc(regWriteCnt*sizeof(REG));
 
 		regWriteCnt = 0;
 		for(i=0; i < maxNumRegsProd; i++){
@@ -325,7 +294,7 @@ VOID instrument_reg(INS ins, ins_buffer_entry* e){
 	}
 
 	if(!e->setRegOpCnt){
-		regOpCnt = 0;	
+		regOpCnt = 0;
 		opCnt = INS_OperandCount(ins);
 		for(i = 0; i < opCnt; i++){
 			if(INS_OperandIsReg(ins,i))
@@ -354,11 +323,11 @@ VOID fini_reg(INT32 code, VOID* v){
 
 	if(interval_size == -1){
 		output_file_reg.open("reg_full_int_pin.out", ios::out|ios::trunc);
-	        output_file_reg << total_ins_count; 
+		output_file_reg << total_ins_count;
 	}
 	else{
 		output_file_reg.open("reg_phases_int_pin.out", ios::out|ios::app);
-		output_file_reg << interval_ins_count; 
+		output_file_reg << interval_ins_count;
 	}
 
 	int i;
@@ -369,7 +338,7 @@ VOID fini_reg(INT32 code, VOID* v){
 	for(i = 1; i < MAX_NUM_OPER; i++){
 		totNumOps += opCounts[i]*i;
 	}
-	output_file_reg << " " << totNumOps; 
+	output_file_reg << " " << totNumOps;
 
 	// ** average degree of use **
 	num = 0;
@@ -382,7 +351,7 @@ VOID fini_reg(INT32 code, VOID* v){
 	for(i = 0; i < MAX_REG_USE; i++){
 		num += i * regUseDistr[i];
 	}
-	output_file_reg << " " << num; 
+	output_file_reg << " " << num;
 
 	// ** register dependency distributions **
 	num = 0;

@@ -1,6 +1,6 @@
 MICA: Microarchitecture-Independent Characterization of Applications
 ====================================================================
-version 0.31
+version 0.32
 
 Kenneth Hoste & Lieven Eeckhout (Ghent University, Belgium)
 
@@ -24,6 +24,12 @@ The easiest way to compile MICA is to add unzip/untar mica_vXYZ.tar.gz to the so
 directory of the Pin kit you are using. If you wish to place mica in a different
 directory, you'll have to adjust the makefile included accordinly.
 Running 'make' should produce the 'mica_v0-X' shared library.
+
+By default, MICA is built using the GCC C++ compiler (g++).
+Since Pin kit 39599 (March 2nd 2011), building Pin tools with the Intel compilers is
+also supported. To build MICA using the Intel C++ compiler, run "make CXX=icpc".
+Make sure /opt/intel/lib is added to the LD_LIBRARY_PATH environment variable to
+use MICA built using the Intel compilers.
 
 * Specifying type of analysis
 -----------------------------
@@ -224,6 +230,10 @@ between 2^3 and 2^4 (or 8 64-byte cache blocks to 16 64-byte cache blocks).
 Note: because memory addresses vary over different executions of the same
 program, these numbers may vary slightly across multiple runs. Please be aware 
 of this when using these metrics for research purposes.
+
+To track the progress of the MICA analysis being run, see the mica_progress.txt tool 
+which shows how many dynamic instructions have been analyzed. Disabling this can be
+done by removing the -DVERBOSE flag in the Makefile and rebuilding MICA. 
 
 * Interval metrics
 -------------------
