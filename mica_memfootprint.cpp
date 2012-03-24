@@ -49,7 +49,7 @@ void init_memfootprint(){
 	page_size = _page_size;
 
 	if(interval_size != -1){
-		output_file_memfootprint.open("memfootprint_phases_int_pin.out", ios::out|ios::trunc);
+		output_file_memfootprint.open(mkfilename("memfootprint_phases_int"), ios::out|ios::trunc);
 		output_file_memfootprint.close();
 	}
 }
@@ -169,7 +169,7 @@ ADDRINT memfootprint_instr_intervals(ADDRINT instrAddr, ADDRINT size){
 
 VOID memfootprint_instr_interval_output(){
 
-	output_file_memfootprint.open("memfootprint_phases_int_pin.out", ios::out|ios::app);
+	output_file_memfootprint.open(mkfilename("memfootprint_phases_int"), ios::out|ios::app);
 
 	ADDRINT i,j;
 	nlist* np;
@@ -307,10 +307,10 @@ VOID fini_memfootprint(INT32 code, VOID* v){
 	long long ImemPageWorkingSetSize = 0L;
 
 	if(interval_size == -1){
-		output_file_memfootprint.open("memfootprint_full_int_pin.out", ios::out|ios::trunc);
+		output_file_memfootprint.open(mkfilename("memfootprint_full_int"), ios::out|ios::trunc);
 	}
 	else{
-		output_file_memfootprint.open("memfootprint_phases_int_pin.out", ios::out|ios::app);
+		output_file_memfootprint.open(mkfilename("memfootprint_phases_int"), ios::out|ios::app);
 	}
 
 	for (i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {

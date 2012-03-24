@@ -31,7 +31,7 @@ void setup_mica_log(ofstream *log){
  * itypes_spec_file: <string>
  */
 
-enum CONFIG_PARAM {UNKNOWN_CONFIG_PARAM = -1, ANALYSIS_TYPE = 0, INTERVAL_SIZE, ILP_SIZE, BLOCK_SIZE, PAGE_SIZE, ITYPES_SPEC_FILE, CONF_PAR_CNT};
+enum CONFIG_PARAM {UNKNOWN_CONFIG_PARAM = -1, ANALYSIS_TYPE = 0, INTERVAL_SIZE, ILP_SIZE, BLOCK_SIZE, PAGE_SIZE, ITYPES_SPEC_FILE, APPEND_PID, CONF_PAR_CNT};
 const char* config_params_str[CONF_PAR_CNT] = {"analysis_type",   "interval_size", "ilp_size", "block_size", "page_size", "itypes_spec_file"};
 enum ANALYSIS_TYPE {UNKNOWN_ANALYSIS_TYPE = -1, ALL=0, ILP, ILP_ONE, ITYPES, PPM, MICA_REG, STRIDE, MEMFOOTPRINT, MEMREUSEDIST, CUSTOM, ANA_TYPE_CNT};
 const char* analysis_types_str[ANA_TYPE_CNT] = { "all",   "ilp", "ilp_one", "itypes", "ppm", "reg", "stride", "memfootprint", "memreusedist", "custom"};
@@ -44,6 +44,7 @@ enum CONFIG_PARAM findConfigParam(char* s){
 	if(strcmp(s, "block_size") == 0){ return BLOCK_SIZE; }
 	if(strcmp(s, "page_size") == 0){ return PAGE_SIZE; }
 	if(strcmp(s, "itypes_spec_file") == 0){ return ITYPES_SPEC_FILE; }
+	if(strcmp(s, "append_pid") == 0){ return APPEND_PID; }
 
 	return UNKNOWN_CONFIG_PARAM;
 }
@@ -64,7 +65,7 @@ enum ANALYSIS_TYPE findAnalysisType(char* s){
 	return UNKNOWN_ANALYSIS_TYPE;
 }
 
-void read_config(ofstream* log, INT64* intervalSize, MODE* mode, UINT32* _ilp_win_size, UINT32* _block_size, UINT32* _page_size, char** _itypes_spec_file){
+void read_config(ofstream* log, INT64* intervalSize, MODE* mode, UINT32* _ilp_win_size, UINT32* _block_size, UINT32* _page_size, char** _itypes_spec_file, int* append_pid){
 
 	int i;
 	char* param;
@@ -91,7 +92,12 @@ void read_config(ofstream* log, INT64* intervalSize, MODE* mode, UINT32* _ilp_wi
 
 	while(!feof(config_file)){
 
-		fscanf(config_file, "%[^:]: %s\n", param, val);
+		if (fscanf(config_file, "%[^:]: %s\n", param, val) != 2)
+		{
+			cerr << "ERROR: invalid config entry found" << endl;
+			(*log) << "ERROR: invalid config entry found" << endl;
+			exit(1);
+		}
 
 		switch(findConfigParam(param)){
 
@@ -212,6 +218,26 @@ void read_config(ofstream* log, INT64* intervalSize, MODE* mode, UINT32* _ilp_wi
 				(*log) << "ITYPES spec file: " << *_itypes_spec_file << endl;
 				break;
 
+			case APPEND_PID:
+				if (strcmp(val, "yes")==0)
+				{
+					*append_pid = 1;
+					cerr << "append pid: yes" << endl;
+					(*log) << "append pid: yes" << endl;
+				}
+				else if (strcmp(val, "no")==0)
+				{
+					*append_pid = 0;
+					cerr << "append pid: no" << endl;
+					(*log) << "append pid: no" << endl;
+				}
+				else
+				{
+					cerr << "ERROR! append_pid can be either yes or no" << endl;
+					(*log) << "ERROR! append_pid can be either yes or no" << endl;
+					exit(1);
+				}
+				break;
 			default:
 				cerr << "ERROR: Unknown config parameter specified: " << param << " (" << val << ")" << endl;
 				cerr << "Known config parameters:" << endl;

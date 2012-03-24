@@ -136,7 +136,7 @@ void init_ppm(){
 	}
 
 	if(interval_size != -1){
-		output_file_ppm.open("ppm_phases_int_pin.out", ios::out|ios::trunc);
+		output_file_ppm.open(mkfilename("ppm_phases_int"), ios::out|ios::trunc);
 		output_file_ppm.close();
 	}
 
@@ -156,7 +156,7 @@ VOID ppm_instr_interval_output(){
 	INT64 total_taken_count = 0;
 	INT64 total_brCount = 0;
 
-	output_file_ppm.open("ppm_phases_int_pin.out", ios::out|ios::app);
+	output_file_ppm.open(mkfilename("ppm_phases_int"), ios::out|ios::app);
 
 	output_file_ppm << interval_size;
 	for(i = 0; i < NUM_HIST_LENGTHS; i++)
@@ -285,7 +285,6 @@ VOID reallocate_brHist(){
 VOID condBr(UINT32 id, BOOL _t){
 
 	int i,j,k;
-	int mem_cnt;
 	int hist;
 	BOOL taken = (_t != 0) ? 1 : 0;
 
@@ -318,7 +317,6 @@ VOID condBr(UINT32 id, BOOL _t){
 		PAs_pht[id] = (char***) checked_malloc(NUM_HIST_LENGTHS * sizeof(char**));
 		for(j = 0; j < NUM_HIST_LENGTHS; j++){
 			PAs_pht[id][j] = (char**) checked_malloc((history_lengths[j]+1) * sizeof(char*));
-			mem_cnt = 0;
 			for(i = 0; i <= (int)history_lengths[j]; i++){
 				PAs_pht[id][j][i] = (char*) checked_malloc((1 << i) * sizeof(char));
 				for(k = 0; k < (1 << i); k++){
@@ -576,11 +574,11 @@ VOID fini_ppm(INT32 code, VOID* v){
 	int i;
 
 	if(interval_size == -1){
-		output_file_ppm.open("ppm_full_int_pin.out", ios::out|ios::trunc);
+		output_file_ppm.open(mkfilename("ppm_full_int"), ios::out|ios::trunc);
 		output_file_ppm << total_ins_count;
 	}
 	else{
-		output_file_ppm.open("ppm_phases_int_pin.out", ios::out|ios::app);
+		output_file_ppm.open(mkfilename("ppm_phases_int"), ios::out|ios::app);
 		output_file_ppm << interval_ins_count;
 	}
 	for(i=0; i < NUM_HIST_LENGTHS; i++)

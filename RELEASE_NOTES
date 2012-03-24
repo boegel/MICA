@@ -1,3 +1,10 @@
+MICA v0.33
+
+- append_pid config entry added by Hamid Fadishei, mainly for multiprocess binaries.
+- some warning messages resolved. 
+
+March 24th 2012
+
 March 31th 2011
 --------------
 

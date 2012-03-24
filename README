@@ -1,6 +1,6 @@
 MICA: Microarchitecture-Independent Characterization of Applications
 ====================================================================
-version 0.32
+version 0.33
 
 Kenneth Hoste & Lieven Eeckhout (Ghent University, Belgium)
 
@@ -405,3 +405,14 @@ acc_cnt_0/mem_access_cnt
 ...
 acc_cnt_2^18-2^19/mem_access_cnt
 acc_cnt_rest/mem_access_cnt
+
+* Multi-process binaries
+-----------------------------------
+
+If you want to use MICA on multiprocess binaries which call fork and execv, you should specify this entry in the MICA configuration file:
+
+append_pid: yes
+
+This will tell MICA to append the current process ID to the report file names so multiple processes do not overwrite each other's output.
+Additionally, you should pass "-follow_execv 1" parameter to pin in order to trace multiprocess applications.
+ 
