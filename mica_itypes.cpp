@@ -40,7 +40,7 @@ ADDRINT itypes_instr_intervals(){
 
 VOID itypes_instr_interval_output(){
 	int i;
-	output_file_itypes.open("itypes_phases_int_pin.out", ios::out|ios::app);
+	output_file_itypes.open(mkfilename("itypes_phases_int"), ios::out|ios::app);
 	output_file_itypes << interval_size;
 	for(i=0; i < number_of_groups+1; i++){
 		output_file_itypes << " " << group_counts[i];
@@ -303,7 +303,7 @@ VOID init_itypes(){
 	// (initializing total instruction counts is done in mica.cpp)
 
 	if(interval_size != -1){
-		output_file_itypes.open("itypes_phases_int_pin.out", ios::out|ios::trunc);
+		output_file_itypes.open(mkfilename("itypes_phases_int"), ios::out|ios::trunc);
 		output_file_itypes.close();
 	}
 }
@@ -400,7 +400,7 @@ VOID fini_itypes(INT32 code, VOID* v){
 	int i;
 
 	if(interval_size == -1){
-		output_file_itypes.open("itypes_full_int_pin.out", ios::out|ios::trunc);
+		output_file_itypes.open(mkfilename("itypes_full_int"), ios::out|ios::trunc);
 		output_file_itypes << total_ins_count;
 		for(i=0; i < number_of_groups+1; i++){
 			output_file_itypes << " " << group_counts[i];
@@ -408,7 +408,7 @@ VOID fini_itypes(INT32 code, VOID* v){
 		output_file_itypes << endl;
 	}
 	else{
-		output_file_itypes.open("itypes_phases_int_pin.out", ios::out|ios::app);
+		output_file_itypes.open(mkfilename("itypes_phases_int"), ios::out|ios::app);
 		output_file_itypes << interval_ins_count;
 		for(i=0; i < number_of_groups+1; i++){
 			output_file_itypes << " " << group_counts[i];

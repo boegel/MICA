@@ -139,8 +139,8 @@ void init_ilp_one(){
 			exit(-1);
 		}
 		stringstream filename;
-		filename << "ilp-win" << win_size << "_phases_int_pin.out";
-		output_file_ilp_one.open(filename.str().c_str(), ios::out|ios::trunc);
+		filename << "ilp-win" << win_size << "_phases_int";
+		output_file_ilp_one.open(mkfilename(filename.str().c_str()), ios::out|ios::trunc);
 		output_file_ilp_one.close();
 	}
 }
@@ -208,8 +208,8 @@ VOID ilp_instr_intervals_one(){
 	if(interval_ins_count_for_hpc_alignment == interval_size){
 
 		stringstream filename;
-		filename << "ilp-win" << win_size << "_phases_int_pin.out";
-		output_file_ilp_one.open(filename.str().c_str(), ios::out|ios::app);
+		filename << "ilp-win" << win_size << "_phases_int";
+		output_file_ilp_one.open(mkfilename(filename.str().c_str()), ios::out|ios::app);
 
 		output_file_ilp_one << interval_size << " " << cpuClock_interval << endl;
 
@@ -413,13 +413,13 @@ VOID fini_ilp_one(INT32 code, VOID* v){
 	fini_ilp_buffering_one();
 
 	if(interval_size == -1){
-		filename << "ilp-win" << win_size << "_full_int_pin.out";
-		output_file_ilp_one.open(filename.str().c_str(), ios::out|ios::trunc);
+		filename << "ilp-win" << win_size << "_full_int";
+		output_file_ilp_one.open(mkfilename(filename.str().c_str()), ios::out|ios::trunc);
 		output_file_ilp_one << total_ins_count;
 	}
 	else{
-		filename << "ilp-win" << win_size << "_phases_int_pin.out";
-		output_file_ilp_one.open(filename.str().c_str(), ios::out|ios::app);
+		filename << "ilp-win" << win_size << "_phases_int";
+		output_file_ilp_one.open(mkfilename(filename.str().c_str()), ios::out|ios::app);
 		output_file_ilp_one << interval_ins_count;
 	}
 	output_file_ilp_one << " " << cpuClock_interval << endl;
@@ -470,7 +470,7 @@ void init_ilp_all(){
 			cerr << "ERROR! Interval size is not a multiple of ILP buffer size. (" << interval_size << " vs " << ILP_BUFFER_SIZE << ")" << endl;
 			exit(-1);
 		}
-		output_file_ilp_all.open("ilp_phases_int_pin.out", ios::out|ios::trunc);
+		output_file_ilp_all.open(mkfilename("ilp_phases_int"), ios::out|ios::trunc);
 		output_file_ilp_all.close();
 	}
 }
@@ -543,7 +543,7 @@ VOID ilp_instr_intervals_all(){
 
 	if(interval_ins_count_for_hpc_alignment == interval_size){
 
-		output_file_ilp_all.open("ilp_phases_int_pin.out", ios::out|ios::app);
+		output_file_ilp_all.open(mkfilename("ilp_phases_int"), ios::out|ios::app);
 
 		output_file_ilp_all << interval_ins_count;
 		for(i = 0; i < ILP_WIN_SIZE_CNT; i++)
@@ -742,11 +742,11 @@ VOID fini_ilp_all(INT32 code, VOID* v){
 	fini_ilp_buffering_all();
 
 	if(interval_size == -1){
-		output_file_ilp_all.open("ilp_full_int_pin.out", ios::out|ios::trunc);
+		output_file_ilp_all.open(mkfilename("ilp_full_int"), ios::out|ios::trunc);
 		output_file_ilp_all << total_ins_count;
 	}
 	else{
-		output_file_ilp_all.open("ilp_phases_int_pin.out", ios::out|ios::app);
+		output_file_ilp_all.open(mkfilename("ilp_phases_int"), ios::out|ios::app);
 		output_file_ilp_all << interval_ins_count;
 	}
 	for(i = 0; i < ILP_WIN_SIZE_CNT; i++)

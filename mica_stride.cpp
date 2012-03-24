@@ -88,7 +88,7 @@ void init_stride(){
 		indices_memWrite[i] = 0;
 
 	if(interval_size != -1){
-		output_file_stride.open("stride_phases_int_pin.out", ios::out|ios::trunc);
+		output_file_stride.open(mkfilename("stride_phases_int"), ios::out|ios::trunc);
 		output_file_stride.close();
 	}
 }
@@ -107,7 +107,7 @@ VOID stride_instr_interval_output(){
 
 	UINT64 cum;
 
-	output_file_stride.open("stride_phases_int_pin.out", ios::out|ios::app);
+	output_file_stride.open(mkfilename("stride_phases_int"), ios::out|ios::app);
 
 	output_file_stride << numReadInstrsAnalyzed;
 	/* local read distribution */
@@ -419,10 +419,10 @@ VOID fini_stride(INT32 code, VOID* v){
 	UINT64 cum;
 
 	if(interval_size == -1){
-		output_file_stride.open("stride_full_int_pin.out", ios::out|ios::trunc);
+		output_file_stride.open(mkfilename("stride_full_int"), ios::out|ios::trunc);
 	}
 	else{
-		output_file_stride.open("stride_phases_int_pin.out", ios::out|ios::app);
+		output_file_stride.open(mkfilename("stride_phases_int"), ios::out|ios::app);
 	}
 	output_file_stride << numReadInstrsAnalyzed;
 	/* local read distribution */

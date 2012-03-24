@@ -36,6 +36,11 @@
 #include "mica_memfootprint.h"
 #include "mica_memreusedist.h"
 
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+using namespace std;
+
 /* *** Variables *** */
 
 /* global */
@@ -57,6 +62,9 @@ UINT32 _block_size;
 /* MEMFOOTPRINT */
 UINT32 _page_size;
 
+/* for multiprocess binaries */
+int append_pid;
+
 /* helper */
 int thread_count = 0;
 
@@ -66,6 +74,18 @@ int thread_count = 0;
 
 //FILE* log;
 ofstream log;
+
+
+/* append <pid>_pin.out to name if necessary */
+const char *mkfilename(const char *name)
+{
+	stringstream ret;
+	if (append_pid)
+		ret << name << "_" << setfill('0') << setw(5) << getpid() << "_pin.out";
+	else
+		ret << name << "_pin.out";
+	return ret.str().c_str();
+}
 
 // find buffer entry for instruction at given address in a hash table
 ins_buffer_entry* findInsBufferEntry(ADDRINT a){
@@ -498,7 +518,7 @@ int main(int argc, char* argv[]){
 
 	setup_mica_log(&log);
 
-	read_config(&log, &interval_size, &mode, &_ilp_win_size, &_block_size, &_page_size, &_itypes_spec_file);
+	read_config(&log, &interval_size, &mode, &_ilp_win_size, &_block_size, &_page_size, &_itypes_spec_file, &append_pid);
 
 	cerr << "interval_size: " << interval_size << ", mode: " << mode << endl;
 
