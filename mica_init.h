@@ -20,4 +20,4 @@ enum MODE { UNKNOWN_MODE, MODE_ALL, MODE_ILP, MODE_ILP_ONE, MODE_ITYPES, MODE_PP
 
 void setup_mica_log(ofstream *log);
 
-void read_config(ofstream *log, INT64* interval_size, MODE* mode, UINT32* _ilp_win_size, UINT32* _block_size, UINT32* _page_size, char** _itypes_spec_file);
+void read_config(ofstream *log, INT64* interval_size, MODE* mode, UINT32* _ilp_win_size, UINT32* _block_size, UINT32* _page_size, char** _itypes_spec_file, int* append_pid);

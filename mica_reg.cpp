@@ -61,7 +61,7 @@ void init_reg(){
 	}
 
 	if(interval_size != -1){
-		output_file_reg.open("reg_phases_int_pin.out", ios::out|ios::trunc);
+		output_file_reg.open(mkfilename("reg_phases_int"), ios::out|ios::trunc);
 		output_file_reg.close();
 	}
 }
@@ -147,11 +147,10 @@ ADDRINT reg_instr_intervals(VOID* _e) {
 VOID reg_instr_interval_output(){
 	int i;
 
-	output_file_reg.open("reg_phases_int_pin.out", ios::out|ios::app);
+	output_file_reg.open(mkfilename("reg_phases_int"), ios::out|ios::app);
 
 	UINT64 totNumOps = 0;
 	UINT64 num;
-	double avg;
 
 	/* total number of operands */
 	for(i = 1; i < MAX_NUM_OPER; i++){
@@ -161,7 +160,6 @@ VOID reg_instr_interval_output(){
 
 	/* average degree of use */
 	num = 0;
-	avg = 0.0;
 	for(i = 0; i < MAX_REG_USE; i++){
 		num += regUseDistr[i];
 	}
@@ -174,7 +172,6 @@ VOID reg_instr_interval_output(){
 
 	/* register dependency distributions */
 	num = 0;
-	avg = 0.0;
 	for(i = 0; i < MAX_COMM_DIST; i++){
 		num += regAgeDistr[i];
 	}
@@ -322,18 +319,17 @@ VOID instrument_reg(INS ins, ins_buffer_entry* e){
 VOID fini_reg(INT32 code, VOID* v){
 
 	if(interval_size == -1){
-		output_file_reg.open("reg_full_int_pin.out", ios::out|ios::trunc);
+		output_file_reg.open(mkfilename("reg_full_int"), ios::out|ios::trunc);
 		output_file_reg << total_ins_count;
 	}
 	else{
-		output_file_reg.open("reg_phases_int_pin.out", ios::out|ios::app);
+		output_file_reg.open(mkfilename("reg_phases_int"), ios::out|ios::app);
 		output_file_reg << interval_ins_count;
 	}
 
 	int i;
 	UINT64 totNumOps = 0;
 	UINT64 num;
-	double avg;
 	/* total number of operands */
 	for(i = 1; i < MAX_NUM_OPER; i++){
 		totNumOps += opCounts[i]*i;
@@ -342,7 +338,6 @@ VOID fini_reg(INT32 code, VOID* v){
 
 	// ** average degree of use **
 	num = 0;
-	avg = 0.0;
 	for(i = 0; i < MAX_REG_USE; i++){
 		num += regUseDistr[i];
 	}
@@ -355,7 +350,6 @@ VOID fini_reg(INT32 code, VOID* v){
 
 	// ** register dependency distributions **
 	num = 0;
-	avg = 0.0;
 	for(i = 0; i < MAX_COMM_DIST; i++){
 		num += regAgeDistr[i];
 	}

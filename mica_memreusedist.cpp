@@ -91,7 +91,7 @@ void init_memreusedist(){
 	memreusedist_block_size = _block_size;
 
 	if(interval_size != -1){
-		output_file_memreusedist.open("memreusedist_phases_int_pin.out", ios::out|ios::trunc);
+		output_file_memreusedist.open(mkfilename("memreusedist_phases_int"), ios::out|ios::trunc);
 		output_file_memreusedist.close();
 	}
 }
@@ -110,7 +110,7 @@ ADDRINT memreusedist_instr_intervals(){
 
 VOID memreusedist_instr_interval_output(){
 	int i;
-	output_file_memreusedist.open("memreusedist_phases_int_pin.out", ios::out|ios::app);
+	output_file_memreusedist.open(mkfilename("memreusedist_phases_int"), ios::out|ios::app);
 	output_file_memreusedist << mem_ref_cnt << " " << cold_refs;
 	for(i=0; i < BUCKET_CNT; i++){
 		output_file_memreusedist << " " << buckets[i];
@@ -408,10 +408,10 @@ VOID fini_memreusedist(INT32 code, VOID* v){
 	int i;
 
 	if(interval_size == -1){
-		output_file_memreusedist.open("memreusedist_full_int_pin.out", ios::out|ios::trunc);
+		output_file_memreusedist.open(mkfilename("memreusedist_full_int"), ios::out|ios::trunc);
 	}
 	else{
-		output_file_memreusedist.open("memreusedist_phases_int_pin.out", ios::out|ios::app);
+		output_file_memreusedist.open(mkfilename("memreusedist_phases_int"), ios::out|ios::app);
 	}
 	output_file_memreusedist << mem_ref_cnt << " " << cold_refs;
 	for(i=0; i < BUCKET_CNT; i++){

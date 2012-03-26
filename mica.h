@@ -23,6 +23,9 @@ using namespace std;
 #ifndef MICA
 #define MICA
 
+/* *** global configurations *** */
+extern int append_pid;
+
 /* *** conditional debugging *** */
 
 #define LOG_MSG(x) log << x << endl;
@@ -75,5 +78,7 @@ const UINT32 history_lengths[NUM_HIST_LENGTHS] = {12,8,4};
 /* MEMREUSEDIST */
 
 #define BUCKET_CNT 19 // number of reuse distance buckets to use
+
+const char *mkfilename(const char *name);
 
 #endif
