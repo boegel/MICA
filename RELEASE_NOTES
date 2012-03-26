@@ -1,12 +1,14 @@
-MICA v0.33
+March 26th 2012
+---------------
 
-- append_pid config entry added by Hamid Fadishei, mainly for multiprocess binaries.
-- some warning messages resolved. 
+MICA v0.40
 
-March 24th 2012
+- contributions by Hamid Fadishei:
+    * append_pid config entry added by Hamid Fadishei, mainly for multiprocess binaries
+    * some warning messages resolved
 
-March 31th 2011
---------------
+Aug. 29th 2011
+---------------
 
 MICA v0.32
 
