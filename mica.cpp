@@ -39,6 +39,7 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <unistd.h>
 using namespace std;
 
 /* *** Variables *** */
