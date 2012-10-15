@@ -58,3 +58,15 @@ memNode* install(nlist** table, ADDRINT key){
 	return (np->mem);
 }
 
+/**
+ * Free a nlist and set the pointer to NULL.
+ */
+void free_nlist(nlist*& np) {
+	nlist* np_rm;
+	while(np != (nlist*)NULL){
+		np_rm = np;
+		np = np->next;
+		free(np_rm->mem);
+		free(np_rm);
+	}
+}
