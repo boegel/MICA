@@ -35,6 +35,7 @@
 #include "mica_stride.h"
 #include "mica_memfootprint.h"
 #include "mica_memstackdist.h"
+#include "mica_memreusedist2.h"
 
 #include <sstream>
 #include <iostream>
@@ -435,6 +436,38 @@ VOID Fini_memstackdist_only(INT32 code, VOID* v){
 	fini_memstackdist(code, v);
 }
 
+/* MEMREUSEDIST2 */
+VOID Instruction_memreusedist2_only(INS ins, VOID* v){
+	if(interval_size == -1){
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_for_hpc_alignment_no_rep, IARG_END);
+		}
+		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_full_count_always, IARG_END);
+	}
+	else{
+		if(INS_HasRealRep(ins)){
+			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
+			INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_with_rep, IARG_REG_VALUE, INS_RepCountRegister(ins), IARG_END);
+		}
+		else{
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_for_hpc_alignment_no_rep, IARG_END);
+		}
+		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_always, IARG_END);
+	}
+
+	instrument_memreusedist2(ins, v);
+}
+
+VOID Fini_memreusedist2_only(INT32 code, VOID* v){
+	fini_memreusedist2(code, v);
+}
+
+
+
 /* MY TYPE */
 VOID Instruction_custom(INS ins, VOID* v){
 
@@ -586,6 +619,12 @@ int main(int argc, char* argv[]){
 			PIN_Init(argc, argv);
 			INS_AddInstrumentFunction(Instruction_memstackdist_only, 0);
 			PIN_AddFiniFunction(Fini_memstackdist_only, 0);
+			break;
+		case MODE_MEMREUSEDIST2:
+			init_memreusedist2();
+			PIN_Init(argc, argv);
+			INS_AddInstrumentFunction(Instruction_memreusedist2_only, 0);
+			PIN_AddFiniFunction(Fini_memreusedist2_only, 0);
 			break;
 		case MODE_CUSTOM:
 			init_custom();

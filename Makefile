@@ -10,7 +10,7 @@ all: depend mica.so
 %.o: %.cpp
 	$(CXX) -g -o $@ -c $< $(CXXFLAGS) $(PIN_CXXFLAGS) 
 
-mica.so: mica.o mica_all.o mica_init.o mica_utils.o mica_ilp.o mica_itypes.o mica_ppm.o mica_reg.o mica_stride.o mica_memfootprint.o mica_memstackdist.o
+mica.so: mica.o mica_all.o mica_init.o mica_utils.o mica_ilp.o mica_itypes.o mica_ppm.o mica_reg.o mica_stride.o mica_memfootprint.o mica_memstackdist.o mica_memreusedist2.o
 	$(CXX) -g -o $@ $(PIN_LDFLAGS) $(LINK_DEBUG) $^ $(PIN_LPATHS) $(PIN_LIBS) $(DBG)
 
 clean:
