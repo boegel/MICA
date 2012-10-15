@@ -22,9 +22,10 @@ extern INT64 total_ins_count;
 extern INT64 total_ins_count_for_hpc_alignment;
 
 extern UINT32 _block_size;
-UINT32 memreusedist_block_size;
 
-ofstream output_file_memreusedist;
+static UINT32 memreusedist_block_size;
+
+static ofstream output_file_memreusedist;
 
 /* A single entry of the cache line reference stack.
  * below points to the entry below us in the stack
@@ -46,21 +47,19 @@ typedef struct block_type_fast {
 	struct block_type_fast* next;
 } block_fast;
 
-stack_entry* stack_top;
-UINT64 stack_size;
+static stack_entry* stack_top;
+static UINT64 stack_size;
 
-INT64 ins_cnt;
-INT64 start_ins_cnt;
-block_fast* hashTableCacheBlocks_fast[MAX_MEM_TABLE_ENTRIES];
-INT64 mem_ref_cnt;
-INT64 cold_refs;
+static block_fast* hashTableCacheBlocks_fast[MAX_MEM_TABLE_ENTRIES];
+static INT64 mem_ref_cnt;
+static INT64 cold_refs;
 
 /* Counters of accesses into each bucket. */
-INT64 buckets[BUCKET_CNT];
+static INT64 buckets[BUCKET_CNT];
 /* References to stack entries that are the oldest entries belonging to the particular bucket.
  * This is used to update bucket attributes of stack entries efficiently. Since the last
  * bucket is overflow bucket, last borderline entry should never be set. */
-stack_entry* borderline_stack_entries[BUCKET_CNT];
+static stack_entry* borderline_stack_entries[BUCKET_CNT];
 
 /* initializing */
 void init_memreusedist(){
@@ -101,7 +100,7 @@ void init_memreusedist(){
 
 }*/
 
-ADDRINT memreusedist_instr_intervals(){
+static ADDRINT memreusedist_instr_intervals(){
 
 	/* counting instructions is done in all_instr_intervals() */
 
@@ -128,7 +127,7 @@ VOID memreusedist_instr_interval_reset(){
 	}
 }
 
-VOID memreusedist_instr_interval(){
+static VOID memreusedist_instr_interval(){
 
 	memreusedist_instr_interval_output();
 	memreusedist_instr_interval_reset();
@@ -158,7 +157,7 @@ stack_entry** entry_lookup(block_fast** table, ADDRINT key){
  *
  * Installs a new array of stack entry references for a given address key (upper part of address) in a hash table.
  */
-stack_entry** entry_install(block_fast** table, ADDRINT key){
+static stack_entry** entry_install(block_fast** table, ADDRINT key){
 
 	block_fast* b;
 
@@ -188,11 +187,12 @@ stack_entry** entry_install(block_fast** table, ADDRINT key){
 
 /* stack support */
 
+#if 0
 /** stack_sanity_check
  *
  * Checks whether the stack structure is internally consistent.
  */
-VOID stack_sanity_check(){
+static VOID stack_sanity_check(){
 
 	UINT64 position = 0;
 	INT32 bucket = 0;
@@ -241,6 +241,7 @@ VOID stack_sanity_check(){
 		position++;
 	}
 }
+#endif
 
 
 /** move_to_top_fast
@@ -248,7 +249,7 @@ VOID stack_sanity_check(){
  * Moves the stack entry e corresponding to the address a to the top of stack.
  * The stack entry can be NULL, in which case a new stack entry is created.
  */
-VOID move_to_top_fast(stack_entry *e, ADDRINT a){
+static VOID move_to_top_fast(stack_entry *e, ADDRINT a){
 
 	INT32 bucket;
 
@@ -334,7 +335,7 @@ VOID move_to_top_fast(stack_entry *e, ADDRINT a){
  * reuse distance is tracked in move_to_top_fast (by climbing up the LRU stack entry-by-entry until top of stack is reached),
  * this function only returns the reuse distance calculated by move_to_top_fast */
 
-INT64 det_reuse_dist_bucket(stack_entry* e){
+static INT64 det_reuse_dist_bucket(stack_entry* e){
 
 	if(e != NULL)
 		return e->bucket;
