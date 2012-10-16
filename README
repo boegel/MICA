@@ -7,6 +7,7 @@ Kenneth Hoste & Lieven Eeckhout (Ghent University, Belgium)
 with contributions by:
 - Hamid Fadishei (multi-process support)
 - Petr Tuma (code cleanup)
+- Maxime Chéramy (cleanup, bug fixes, additional features)
 
 website: http://boegel.kejo.be/ELIS/MICA (http://www.elis.ugent.be/~kehoste/mica)
 
