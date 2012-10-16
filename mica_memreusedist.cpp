@@ -315,8 +315,8 @@ static VOID move_to_top_fast(stack_entry *e, ADDRINT a){
 		// overflow bucket boundar is never set
 		if (bucket < BUCKET_CNT - 1)
 		{
-			UINT64 borderline_distance = ((UINT64) 1) << bucket;
-			if(stack_size == borderline_distance + 1){
+			UINT64 borderline_distance = ((UINT64) 2) << bucket;
+			if(stack_size == borderline_distance){
 				// find the bottom of the stack by traversing from somewhere close to it
 				stack_entry *stack_bottom;
 				if (bucket) stack_bottom = borderline_stack_entries [bucket-1];
