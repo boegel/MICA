@@ -44,6 +44,7 @@ typedef struct nlist_type {
 
 memNode* lookup(nlist** table, ADDRINT key);
 memNode* install(nlist** table, ADDRINT key);
+void free_nlist(nlist*& np);
 
 typedef struct ins_buffer_entry_type {
 	ADDRINT insAddr;

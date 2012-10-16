@@ -14,9 +14,9 @@
 #include "mica_reg.h"
 #include "mica_stride.h"
 #include "mica_memfootprint.h"
-#include "mica_memreusedist.h"
+#include "mica_memstackdist.h"
 
-enum MODE { UNKNOWN_MODE, MODE_ALL, MODE_ILP, MODE_ILP_ONE, MODE_ITYPES, MODE_PPM, MODE_REG, MODE_STRIDE, MODE_MEMFOOTPRINT, MODE_MEMREUSEDIST, MODE_CUSTOM };
+enum MODE { UNKNOWN_MODE, MODE_ALL, MODE_ILP, MODE_ILP_ONE, MODE_ITYPES, MODE_PPM, MODE_REG, MODE_STRIDE, MODE_MEMFOOTPRINT, MODE_MEMSTACKDIST, MODE_CUSTOM };
 
 void setup_mica_log(ofstream *log);
 

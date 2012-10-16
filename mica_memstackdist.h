@@ -9,10 +9,10 @@
 
 #include "mica.h"
 
-void init_memreusedist();
-VOID instrument_memreusedist(INS ins, VOID* v);
-VOID fini_memreusedist(INT32 code, VOID* v);
+void init_memstackdist();
+VOID instrument_memstackdist(INS ins, VOID* v);
+VOID fini_memstackdist(INT32 code, VOID* v);
 
-VOID memreusedist_memRead(ADDRINT effMemAddr, ADDRINT size);
-VOID memreusedist_instr_interval_output();
-VOID memreusedist_instr_interval_reset();
+VOID memstackdist_memRead(ADDRINT effMemAddr, ADDRINT size);
+VOID memstackdist_instr_interval_output();
+VOID memstackdist_instr_interval_reset();

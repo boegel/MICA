@@ -15,7 +15,7 @@
 #include "mica_reg.h" // needed for reg_instr_full, reg_instr_intervals, reg_instr_interval_output and reg_instr_interval_reset
 #include "mica_stride.h" // needed for stride_index_mem*, readMem_stride, writeMem_stride, stride_instr_interval_output and stride_instr_interval_reset
 #include "mica_memfootprint.h" // needed for memOp, memfootprint_instr_interval_output and memfootprint_instr_interval_reset
-#include "mica_memreusedist.h" // needed for memreusedist_memRead, memreusedist_instr_interval_output and memreusedist_instr_interval_reset
+#include "mica_memstackdist.h" // needed for memstackdist_memRead, memstackdist_instr_interval_output and memstackdist_instr_interval_reset
 
 #define PROGRESS_THRESHOLD 10000000 // 10M
 
@@ -43,7 +43,7 @@ void init_all(){
 	init_reg();
 	init_stride();
 	init_memfootprint();
-	init_memreusedist();
+	init_memstackdist();
 }
 
 ADDRINT returnArg(BOOL arg){
@@ -111,8 +111,8 @@ ADDRINT all_buffer_instruction_2reads_write(void* _e, ADDRINT read1_addr, ADDRIN
 	memOp(read1_addr, read_size); // memfootprint
 	memOp(read2_addr, read_size);
 	memOp(write_addr, write_size);
-	memreusedist_memRead(read1_addr, read_size); // memreusedist
-	memreusedist_memRead(read2_addr, read_size);
+	memstackdist_memRead(read1_addr, read_size); // memstackdist
+	memstackdist_memRead(read2_addr, read_size);
 	//return ilp_buffer_instruction_2reads_write(_e, read1_addr, read2_addr, read_size, write_addr, write_size);
 	ilp_buffer_instruction_only(_e);
 	ilp_buffer_instruction_read(read1_addr, read_size);
@@ -129,7 +129,7 @@ ADDRINT all_buffer_instruction_read_write(void* _e, ADDRINT read1_addr, ADDRINT 
 	writeMem_stride(stride_index_memwrite, write_addr, write_size);
 	memOp(read1_addr, read_size); // memfootprint
 	memOp(write_addr, write_size);
-	memreusedist_memRead(read1_addr, read_size); // memreusedist
+	memstackdist_memRead(read1_addr, read_size); // memstackdist
 	//return ilp_buffer_instruction_read_write(_e, read1_addr, read_size, write_addr, write_size);
 	ilp_buffer_instruction_only(_e);
 	ilp_buffer_instruction_read(read1_addr, read_size);
@@ -144,8 +144,8 @@ ADDRINT all_buffer_instruction_2reads(void* _e, ADDRINT read1_addr, ADDRINT read
 	readMem_stride(stride_index_memread2, read2_addr, read_size);
 	memOp(read1_addr, read_size); // memfootprint
 	memOp(read2_addr, read_size);
-	memreusedist_memRead(read1_addr, read_size); // memreusedist
-	memreusedist_memRead(read2_addr, read_size);
+	memstackdist_memRead(read1_addr, read_size); // memstackdist
+	memstackdist_memRead(read2_addr, read_size);
 	//return ilp_buffer_instruction_2reads(_e, read1_addr, read2_addr, read_size);
 	ilp_buffer_instruction_only(_e);
 	ilp_buffer_instruction_read(read1_addr, read_size);
@@ -158,7 +158,7 @@ ADDRINT all_buffer_instruction_read(void* _e, ADDRINT read1_addr, ADDRINT read_s
 	//itypes_count_mem_read();
 	readMem_stride(stride_index_memread1, read1_addr, read_size);
 	memOp(read1_addr, read_size); // memfootprint
-	memreusedist_memRead(read1_addr, read_size); // memreusedist
+	memstackdist_memRead(read1_addr, read_size); // memstackdist
 	//return ilp_buffer_instruction_read(_e, read1_addr, read_size);
 	ilp_buffer_instruction_only(_e);
 	ilp_buffer_instruction_read(read1_addr, read_size);
@@ -213,8 +213,8 @@ VOID all_instr_interval(){
 	memfootprint_instr_interval_output();
 	memfootprint_instr_interval_reset();
 
-	memreusedist_instr_interval_output();
-	memreusedist_instr_interval_reset();
+	memstackdist_instr_interval_output();
+	memstackdist_instr_interval_reset();
 
 	interval_ins_count = 0;
 	interval_ins_count_for_hpc_alignment = 0;
