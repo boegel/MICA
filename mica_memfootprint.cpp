@@ -22,20 +22,77 @@ extern INT64 total_ins_count;
 extern INT64 total_ins_count_for_hpc_alignment;
 
 extern UINT32 _block_size;
-UINT32 memfootprint_block_size;
 extern UINT32 _page_size;
-UINT32 page_size;
 
-ofstream output_file_memfootprint;
+static UINT32 memfootprint_block_size;
+static UINT32 page_size;
 
-nlist* DmemCacheWorkingSetTable[MAX_MEM_TABLE_ENTRIES];
-nlist* DmemPageWorkingSetTable[MAX_MEM_TABLE_ENTRIES];
-nlist* ImemCacheWorkingSetTable[MAX_MEM_TABLE_ENTRIES];
-nlist* ImemPageWorkingSetTable[MAX_MEM_TABLE_ENTRIES];
+static ofstream output_file_memfootprint;
+
+static nlist* DmemCacheWorkingSetTable[MAX_MEM_TABLE_ENTRIES];
+static nlist* DmemPageWorkingSetTable[MAX_MEM_TABLE_ENTRIES];
+static nlist* ImemCacheWorkingSetTable[MAX_MEM_TABLE_ENTRIES];
+static nlist* ImemPageWorkingSetTable[MAX_MEM_TABLE_ENTRIES];
+
+
+static long long DmemCacheWSS() {
+	long long DmemCacheWorkingSetSize = 0L;
+	for (int i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
+		for (nlist *np = DmemCacheWorkingSetTable [i]; np != (nlist*) NULL; np = np->next) {
+			for (ADDRINT j = 0; j < MAX_MEM_BLOCK; j++) {
+				if ((np->mem)->numReferenced [j]) {
+					DmemCacheWorkingSetSize++;
+				}
+			}
+		}
+	}
+	return DmemCacheWorkingSetSize;
+}
+
+static long long ImemCacheWSS() {
+	long long ImemCacheWorkingSetSize = 0L;
+	for (int i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
+		for (nlist *np = ImemCacheWorkingSetTable [i]; np != (nlist*) NULL; np = np->next) {
+			for (ADDRINT j = 0; j < MAX_MEM_BLOCK; j++) {
+				if ((np->mem)->numReferenced [j]) {
+					ImemCacheWorkingSetSize++;
+				}
+			}
+		}
+	}
+	return ImemCacheWorkingSetSize;
+}
+
+static long long DmemPageWSS() {
+	long long DmemPageWorkingSetSize = 0L;
+	for (int i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
+		for (nlist *np = DmemPageWorkingSetTable [i]; np != (nlist*) NULL; np = np->next) {
+			for (ADDRINT j = 0; j < MAX_MEM_BLOCK; j++) {
+				if ((np->mem)->numReferenced [j]) {
+					DmemPageWorkingSetSize++;
+				}
+			}
+		}
+	}
+	return DmemPageWorkingSetSize;
+}
+
+static long long ImemPageWSS() {
+	long long ImemPageWorkingSetSize = 0L;
+	for (int i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
+		for (nlist *np = ImemPageWorkingSetTable [i]; np != (nlist*) NULL; np = np->next) {
+			for (ADDRINT j = 0; j < MAX_MEM_BLOCK; j++) {
+				if ((np->mem)->numReferenced [j]) {
+					ImemPageWorkingSetSize++;
+				}
+			}
+		}
+	}
+	return ImemPageWorkingSetSize;
+}
 
 /* initializing */
 void init_memfootprint(){
-
 	int i;
 
 	for (i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
@@ -55,17 +112,16 @@ void init_memfootprint(){
 }
 
 VOID memOp(ADDRINT effMemAddr, ADDRINT size){
-
-	ADDRINT a;
-	ADDRINT addr, endAddr, upperAddr, indexInChunk;
-	memNode* chunk;
-
-	/* D-stream (64-byte) cache block memory footprint */
-
-	addr = effMemAddr >> memfootprint_block_size;
-	endAddr = (effMemAddr + size - 1) >> memfootprint_block_size;
-
 	if(size > 0){
+		ADDRINT a;
+		ADDRINT addr, endAddr, upperAddr, indexInChunk;
+		memNode* chunk;
+
+		/* D-stream (64-byte) cache block memory footprint */
+
+		addr = effMemAddr >> memfootprint_block_size;
+		endAddr = (effMemAddr + size - 1) >> memfootprint_block_size;
+
 		for(a = addr; a <= endAddr; a++){
 
 			upperAddr = a >> LOG_MAX_MEM_BLOCK;
@@ -79,14 +135,12 @@ VOID memOp(ADDRINT effMemAddr, ADDRINT size){
 			chunk->numReferenced[indexInChunk] = true;
 
 		}
-	}
 
-	/* D-stream (4KB) page block memory footprint */
+		/* D-stream (4KB) page block memory footprint */
+	
+		addr = effMemAddr >> page_size;
+		endAddr = (effMemAddr + size - 1) >> page_size;
 
-	addr = effMemAddr >> page_size;
-	endAddr = (effMemAddr + size - 1) >> page_size;
-
-	if(size > 0){
 		for(a = addr; a <= endAddr; a++){
 
 			upperAddr = a >> LOG_MAX_MEM_BLOCK;
@@ -105,17 +159,17 @@ VOID memOp(ADDRINT effMemAddr, ADDRINT size){
 
 VOID instrMem(ADDRINT instrAddr, ADDRINT size){
 
-	ADDRINT a;
-	ADDRINT addr, endAddr, upperAddr, indexInChunk;
-	memNode* chunk;
-
-
-	/* I-stream (64-byte) cache block memory footprint */
-
-	addr = instrAddr >> memfootprint_block_size;
-	endAddr = (instrAddr + size - 1) >> memfootprint_block_size;
-
 	if(size > 0){
+		ADDRINT a;
+		ADDRINT addr, endAddr, upperAddr, indexInChunk;
+		memNode* chunk;
+
+
+		/* I-stream (64-byte) cache block memory footprint */
+
+		addr = instrAddr >> memfootprint_block_size;
+		endAddr = (instrAddr + size - 1) >> memfootprint_block_size;
+
 		for(a = addr; a <= endAddr; a++){
 
 			upperAddr = a >> LOG_MAX_MEM_BLOCK;
@@ -129,14 +183,12 @@ VOID instrMem(ADDRINT instrAddr, ADDRINT size){
 			chunk->numReferenced[indexInChunk] = true;
 
 		}
-	}
 
-	/* I-stream (4KB) page block memory footprint */
+		/* I-stream (4KB) page block memory footprint */
 
-	addr = instrAddr >> page_size;
-	endAddr = (instrAddr + size - 1) >> page_size;
+		addr = instrAddr >> page_size;
+		endAddr = (instrAddr + size - 1) >> page_size;
 
-	if(size > 0){
 		for(a = addr; a <= endAddr; a++){
 
 			upperAddr = a >> LOG_MAX_MEM_BLOCK;
@@ -152,14 +204,14 @@ VOID instrMem(ADDRINT instrAddr, ADDRINT size){
 	}
 }
 
-VOID memfootprint_instr_full(ADDRINT instrAddr, ADDRINT size){
+static VOID memfootprint_instr_full(ADDRINT instrAddr, ADDRINT size){
 
 	/* counting instructions is done in all_instr_full() */
 
 	instrMem(instrAddr, size);
 }
 
-ADDRINT memfootprint_instr_intervals(ADDRINT instrAddr, ADDRINT size){
+static ADDRINT memfootprint_instr_intervals(ADDRINT instrAddr, ADDRINT size){
 
 	/* counting instructions is done in all_instr_intervals() */
 
@@ -171,99 +223,26 @@ VOID memfootprint_instr_interval_output(){
 
 	output_file_memfootprint.open(mkfilename("memfootprint_phases_int"), ios::out|ios::app);
 
-	ADDRINT i,j;
-	nlist* np;
-	long long DmemCacheWorkingSetSize = 0;
-	long long DmemPageWorkingSetSize = 0;
-	long long ImemCacheWorkingSetSize = 0;
-	long long ImemPageWorkingSetSize = 0;
+	long long DmemCacheWorkingSetSize = DmemCacheWSS();
+	long long DmemPageWorkingSetSize = DmemPageWSS();
+	long long ImemCacheWorkingSetSize = ImemCacheWSS();
+	long long ImemPageWorkingSetSize = ImemPageWSS();
 
-	for (i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
-		for (np = DmemCacheWorkingSetTable [i]; np != (nlist*) NULL; np = np->next) {
-			for (j = 0; j < MAX_MEM_BLOCK; j++) {
-				if ((np->mem)->numReferenced [j]) {
-					DmemCacheWorkingSetSize++;
-				}
-			}
-		}
-	}
-	for (i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
-		for (np = DmemPageWorkingSetTable [i]; np != (nlist*) NULL; np = np->next) {
-			for (j = 0; j < MAX_MEM_BLOCK; j++) {
-				if ((np->mem)->numReferenced [j]) {
-					DmemPageWorkingSetSize++;
-				}
-			}
-		}
-	}
-	for (i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
-		for (np = ImemCacheWorkingSetTable [i]; np != (nlist*) NULL; np = np->next) {
-			for (j = 0; j < MAX_MEM_BLOCK; j++) {
-				if ((np->mem)->numReferenced [j]) {
-					ImemCacheWorkingSetSize++;
-				}
-			}
-		}
-	}
-	for (i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
-		for (np = ImemPageWorkingSetTable [i]; np != (nlist*) NULL; np = np->next) {
-			for (j = 0; j < MAX_MEM_BLOCK; j++) {
-				if ((np->mem)->numReferenced [j]) {
-					ImemPageWorkingSetSize++;
-				}
-			}
-		}
-	}
 	output_file_memfootprint << DmemCacheWorkingSetSize << " " << DmemPageWorkingSetSize << " " << ImemCacheWorkingSetSize << " " << ImemPageWorkingSetSize << endl;
 	output_file_memfootprint.close();
 }
 
 VOID memfootprint_instr_interval_reset(){
-
-	ADDRINT i;
-	nlist* np;
-
 	/* clean used memory, to avoid memory shortage for long (CPU2006) benchmarks */
-	nlist* np_rm;
-	for(i=0; i < MAX_MEM_TABLE_ENTRIES; i++){
-		np = DmemCacheWorkingSetTable[i];
-		while(np != (nlist*)NULL){
-			np_rm = np;
-			np = np->next;
-			free(np_rm->mem);
-			free(np_rm);
-		}
-		np = DmemPageWorkingSetTable[i];
-		while(np != (nlist*)NULL){
-			np_rm = np;
-			np = np->next;
-			free(np_rm->mem);
-			free(np_rm);
-		}
-		np = ImemCacheWorkingSetTable[i];
-		while(np != (nlist*)NULL){
-			np_rm = np;
-			np = np->next;
-			free(np_rm->mem);
-			free(np_rm);
-		}
-		np = ImemPageWorkingSetTable[i];
-		while(np != (nlist*)NULL){
-			np_rm = np;
-			np = np->next;
-			free(np_rm->mem);
-			free(np_rm);
-		}
-	}
-	for (i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
-		DmemCacheWorkingSetTable[i] = (nlist*) NULL;
-		DmemPageWorkingSetTable[i] = (nlist*) NULL;
-		ImemCacheWorkingSetTable[i] = (nlist*) NULL;
-		ImemPageWorkingSetTable[i] = (nlist*) NULL;
+	for(ADDRINT i=0; i < MAX_MEM_TABLE_ENTRIES; i++){
+		free_nlist(DmemCacheWorkingSetTable[i]);
+		free_nlist(DmemPageWorkingSetTable[i]);
+		free_nlist(ImemCacheWorkingSetTable[i]);
+		free_nlist(ImemPageWorkingSetTable[i]);
 	}
 }
 
-VOID memfootprint_instr_interval(){
+static VOID memfootprint_instr_interval(){
 
 	memfootprint_instr_interval_output();
 	memfootprint_instr_interval_reset();
@@ -296,15 +275,14 @@ VOID instrument_memfootprint(INS ins, VOID* v){
 	}
 }
 
+
 /* finishing... */
 VOID fini_memfootprint(INT32 code, VOID* v){
 
-	ADDRINT i,j;
-	nlist* np;
-	long long DmemCacheWorkingSetSize = 0L;
-	long long DmemPageWorkingSetSize = 0L;
-	long long ImemCacheWorkingSetSize = 0L;
-	long long ImemPageWorkingSetSize = 0L;
+	long long DmemCacheWorkingSetSize = DmemCacheWSS();
+	long long DmemPageWorkingSetSize = DmemPageWSS();
+	long long ImemCacheWorkingSetSize = ImemCacheWSS();
+	long long ImemPageWorkingSetSize = ImemPageWSS();
 
 	if(interval_size == -1){
 		output_file_memfootprint.open(mkfilename("memfootprint_full_int"), ios::out|ios::trunc);
@@ -313,42 +291,6 @@ VOID fini_memfootprint(INT32 code, VOID* v){
 		output_file_memfootprint.open(mkfilename("memfootprint_phases_int"), ios::out|ios::app);
 	}
 
-	for (i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
-		for (np = DmemCacheWorkingSetTable [i]; np != (nlist*) NULL; np = np->next) {
-			for (j = 0; j < MAX_MEM_BLOCK; j++) {
-				if ((np->mem)->numReferenced [j]) {
-					DmemCacheWorkingSetSize++;
-				}
-			}
-		}
-	}
-	for (i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
-		for (np = DmemPageWorkingSetTable [i]; np != (nlist*) NULL; np = np->next) {
-			for (j = 0; j < MAX_MEM_BLOCK; j++) {
-				if ((np->mem)->numReferenced [j]) {
-					DmemPageWorkingSetSize++;
-				}
-			}
-		}
-	}
-	for (i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
-		for (np = ImemCacheWorkingSetTable [i]; np != (nlist*) NULL; np = np->next) {
-			for (j = 0; j < MAX_MEM_BLOCK; j++) {
-				if ((np->mem)->numReferenced [j]) {
-					ImemCacheWorkingSetSize++;
-				}
-			}
-		}
-	}
-	for (i = 0; i < MAX_MEM_TABLE_ENTRIES; i++) {
-		for (np = ImemPageWorkingSetTable [i]; np != (nlist*) NULL; np = np->next) {
-			for (j = 0; j < MAX_MEM_BLOCK; j++) {
-				if ((np->mem)->numReferenced [j]) {
-					ImemPageWorkingSetSize++;
-				}
-			}
-		}
-	}
 	output_file_memfootprint << DmemCacheWorkingSetSize << " " << DmemPageWorkingSetSize << " " << ImemCacheWorkingSetSize << " " << ImemPageWorkingSetSize << endl;
 	output_file_memfootprint << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
 	output_file_memfootprint.close();
