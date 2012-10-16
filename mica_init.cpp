@@ -25,7 +25,7 @@ void setup_mica_log(ofstream *log){
 /*
  * Read mica.conf config file for MICA.
  *
- * analysis_type: 'all' | 'ilp' | 'ilp_one' | 'itypes' | 'ppm' | 'reg' | 'stride' | 'memfootprint' | 'memreusedist' | 'custom'
+ * analysis_type: 'all' | 'ilp' | 'ilp_one' | 'itypes' | 'ppm' | 'reg' | 'stride' | 'memfootprint' | 'memstackdist' | 'custom'
  * interval_size: 'full' | <integer>
  * ilp_size: <integer>
  * itypes_spec_file: <string>
@@ -33,8 +33,8 @@ void setup_mica_log(ofstream *log){
 
 enum CONFIG_PARAM {UNKNOWN_CONFIG_PARAM = -1, ANALYSIS_TYPE = 0, INTERVAL_SIZE, ILP_SIZE, BLOCK_SIZE, PAGE_SIZE, ITYPES_SPEC_FILE, APPEND_PID, CONF_PAR_CNT};
 const char* config_params_str[CONF_PAR_CNT] = {"analysis_type",   "interval_size", "ilp_size", "block_size", "page_size", "itypes_spec_file"};
-enum ANALYSIS_TYPE {UNKNOWN_ANALYSIS_TYPE = -1, ALL=0, ILP, ILP_ONE, ITYPES, PPM, MICA_REG, STRIDE, MEMFOOTPRINT, MEMREUSEDIST, CUSTOM, ANA_TYPE_CNT};
-const char* analysis_types_str[ANA_TYPE_CNT] = { "all",   "ilp", "ilp_one", "itypes", "ppm", "reg", "stride", "memfootprint", "memreusedist", "custom"};
+enum ANALYSIS_TYPE {UNKNOWN_ANALYSIS_TYPE = -1, ALL=0, ILP, ILP_ONE, ITYPES, PPM, MICA_REG, STRIDE, MEMFOOTPRINT, MEMSTACKDIST, CUSTOM, ANA_TYPE_CNT};
+const char* analysis_types_str[ANA_TYPE_CNT] = { "all",   "ilp", "ilp_one", "itypes", "ppm", "reg", "stride", "memfootprint", "memstackdist", "custom"};
 
 enum CONFIG_PARAM findConfigParam(char* s){
 
@@ -59,7 +59,7 @@ enum ANALYSIS_TYPE findAnalysisType(char* s){
 	if(strcmp(s, "reg") == 0){ return MICA_REG; }
 	if(strcmp(s, "stride") == 0){ return STRIDE; }
 	if(strcmp(s, "memfootprint") == 0){ return MEMFOOTPRINT; }
-	if(strcmp(s, "memreusedist") == 0){ return MEMREUSEDIST; }
+	if(strcmp(s, "memstackdist") == 0){ return MEMSTACKDIST; }
 	if(strcmp(s, "custom") == 0){ return CUSTOM; }
 
 	return UNKNOWN_ANALYSIS_TYPE;
@@ -155,10 +155,10 @@ void read_config(ofstream* log, INT64* intervalSize, MODE* mode, UINT32* _ilp_wi
 						(*log) << "Measuring MEMFOOTPRINT characteristics..." << endl;
 						break;
 
-					case MEMREUSEDIST:
-						*mode = MODE_MEMREUSEDIST;
-						cerr << "Measuring MEMREUSEDIST characteristics..." << endl;
-						(*log) << "Measuring MEMREUSEDIST characteristics..." << endl;
+					case MEMSTACKDIST:
+						*mode = MODE_MEMSTACKDIST;
+						cerr << "Measuring MEMSTACKDIST characteristics..." << endl;
+						(*log) << "Measuring MEMSTACKDIST characteristics..." << endl;
 						break;
 
 					case CUSTOM:

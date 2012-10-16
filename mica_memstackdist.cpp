@@ -11,7 +11,7 @@
 
 /* MICA includes */
 #include "mica_utils.h"
-#include "mica_memreusedist.h"
+#include "mica_memstackdist.h"
 
 /* Global variables */
 
@@ -23,9 +23,9 @@ extern INT64 total_ins_count_for_hpc_alignment;
 
 extern UINT32 _block_size;
 
-static UINT32 memreusedist_block_size;
+static UINT32 memstackdist_block_size;
 
-static ofstream output_file_memreusedist;
+static ofstream output_file_memstackdist;
 
 /* A single entry of the cache line reference stack.
  * below points to the entry below us in the stack
@@ -62,7 +62,7 @@ static INT64 buckets[BUCKET_CNT];
 static stack_entry* borderline_stack_entries[BUCKET_CNT];
 
 /* initializing */
-void init_memreusedist(){
+void init_memstackdist(){
 
 	int i;
 
@@ -87,38 +87,38 @@ void init_memreusedist(){
 	stack_top->bucket = 0;
 	stack_size = 1;
 
-	memreusedist_block_size = _block_size;
+	memstackdist_block_size = _block_size;
 
 	if(interval_size != -1){
-		output_file_memreusedist.open(mkfilename("memreusedist_phases_int"), ios::out|ios::trunc);
-		output_file_memreusedist.close();
+		output_file_memstackdist.open(mkfilename("memstackdist_phases_int"), ios::out|ios::trunc);
+		output_file_memstackdist.close();
 	}
 }
 
-/*VOID memreusedist_instr_full(){
+/*VOID memstackdist_instr_full(){
 	// counting instructions is done in all_instr_full()
 
 }*/
 
-static ADDRINT memreusedist_instr_intervals(){
+static ADDRINT memstackdist_instr_intervals(){
 
 	/* counting instructions is done in all_instr_intervals() */
 
 	return (ADDRINT)(interval_ins_count_for_hpc_alignment == interval_size);
 }
 
-VOID memreusedist_instr_interval_output(){
+VOID memstackdist_instr_interval_output(){
 	int i;
-	output_file_memreusedist.open(mkfilename("memreusedist_phases_int"), ios::out|ios::app);
-	output_file_memreusedist << mem_ref_cnt << " " << cold_refs;
+	output_file_memstackdist.open(mkfilename("memstackdist_phases_int"), ios::out|ios::app);
+	output_file_memstackdist << mem_ref_cnt << " " << cold_refs;
 	for(i=0; i < BUCKET_CNT; i++){
-		output_file_memreusedist << " " << buckets[i];
+		output_file_memstackdist << " " << buckets[i];
 	}
-	output_file_memreusedist << endl;
-	output_file_memreusedist.close();
+	output_file_memstackdist << endl;
+	output_file_memstackdist.close();
 }
 
-VOID memreusedist_instr_interval_reset(){
+VOID memstackdist_instr_interval_reset(){
 	int i;
 	mem_ref_cnt = 0;
 	cold_refs = 0;
@@ -127,10 +127,10 @@ VOID memreusedist_instr_interval_reset(){
 	}
 }
 
-static VOID memreusedist_instr_interval(){
+static VOID memstackdist_instr_interval(){
 
-	memreusedist_instr_interval_output();
-	memreusedist_instr_interval_reset();
+	memstackdist_instr_interval_output();
+	memstackdist_instr_interval_reset();
 	interval_ins_count = 0;
 	interval_ins_count_for_hpc_alignment = 0;
 }
@@ -344,7 +344,7 @@ static INT64 det_reuse_dist_bucket(stack_entry* e){
 }
 
 /* register memory access (either read of write) determine which cache lines are touched */
-VOID memreusedist_memRead(ADDRINT effMemAddr, ADDRINT size){
+VOID memstackdist_memRead(ADDRINT effMemAddr, ADDRINT size){
 
 	ADDRINT a, endAddr, addr, upperAddr, indexInChunk;
 	stack_entry** chunk;
@@ -352,8 +352,8 @@ VOID memreusedist_memRead(ADDRINT effMemAddr, ADDRINT size){
 
 	/* Calculate index in cache addresses. The calculation does not
 	 * handle address overflows but those are unlikely to happen. */
-	addr = effMemAddr >> memreusedist_block_size;
-	endAddr = (effMemAddr + size - 1) >> memreusedist_block_size;
+	addr = effMemAddr >> memstackdist_block_size;
+	endAddr = (effMemAddr + size - 1) >> memstackdist_block_size;
 
 	/* The hit is counted for all cache lines involved. */
 	for(a = addr; a <= endAddr; a++){
@@ -386,38 +386,38 @@ VOID memreusedist_memRead(ADDRINT effMemAddr, ADDRINT size){
 	}
 }
 
-VOID instrument_memreusedist(INS ins, VOID *v){
+VOID instrument_memstackdist(INS ins, VOID *v){
 
 	if( INS_IsMemoryRead(ins) ){
 
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)memreusedist_memRead, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_END);
+		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)memstackdist_memRead, IARG_MEMORYREAD_EA, IARG_MEMORYREAD_SIZE, IARG_END);
 
 		if( INS_HasMemoryRead2(ins) )
-			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)memreusedist_memRead, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_END);
+			INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)memstackdist_memRead, IARG_MEMORYREAD2_EA, IARG_MEMORYREAD_SIZE, IARG_END);
 	}
 
 	if(interval_size != -1){
-		INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)memreusedist_instr_intervals,IARG_END);
+		INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)memstackdist_instr_intervals,IARG_END);
 		/* only called if interval is 'full' */
-		INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)memreusedist_instr_interval,IARG_END);
+		INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)memstackdist_instr_interval,IARG_END);
 	}
 }
 
 /* finishing... */
-VOID fini_memreusedist(INT32 code, VOID* v){
+VOID fini_memstackdist(INT32 code, VOID* v){
 
 	int i;
 
 	if(interval_size == -1){
-		output_file_memreusedist.open(mkfilename("memreusedist_full_int"), ios::out|ios::trunc);
+		output_file_memstackdist.open(mkfilename("memstackdist_full_int"), ios::out|ios::trunc);
 	}
 	else{
-		output_file_memreusedist.open(mkfilename("memreusedist_phases_int"), ios::out|ios::app);
+		output_file_memstackdist.open(mkfilename("memstackdist_phases_int"), ios::out|ios::app);
 	}
-	output_file_memreusedist << mem_ref_cnt << " " << cold_refs;
+	output_file_memstackdist << mem_ref_cnt << " " << cold_refs;
 	for(i=0; i < BUCKET_CNT; i++){
-		output_file_memreusedist << " " << buckets[i];
+		output_file_memstackdist << " " << buckets[i];
 	}
-	output_file_memreusedist << endl << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
-	output_file_memreusedist.close();
+	output_file_memstackdist << endl << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_memstackdist.close();
 }

@@ -46,7 +46,7 @@ Specifying the parameters is done using the mica.conf configuration file.
 A sample mica.conf file is provided with the distribution, and details
 on how to specify the parameters are found below.
 
-analysis_type: all | ilp | ilp_one | itypes | ppm | reg | stride | memfootprint | memreusedist | custom
+analysis_type: all | ilp | ilp_one | itypes | ppm | reg | stride | memfootprint | memstackdist | custom
 interval_size: full | <size>
 [ilp_size: <size>]
 [block_size: <2^size>]
@@ -103,9 +103,9 @@ stride:
 memfootprint: 
 	full: memfootprint_full_int_pin.out
 	interval: memfootprint_phases_int_pin.out
-memreusedist: 
-	full: memreusedist_full_int_pin.out
-	interval: memreusedist_phases_int_pin.out
+memstackdist: 
+	full: memstackdist_full_int_pin.out
+	interval: memstackdist_phases_int_pin.out
 	
 
 * Full execution metrics
@@ -209,9 +209,9 @@ The size of the instruction and data memory footprint is characterized by
 counting the number of blocks (64-byte) and pages (4KB) touched. This
 is done seperately for data and instruction addresses.
 
-+++ memreusedist +++
++++ memstackdist +++
 
-analysis_type: memreusedist
+analysis_type: memstackdist
 
 Memory reuse distances.
 
@@ -283,7 +283,7 @@ huge memory requirements for large workloads)
 
 DON'T TOUCH: -
 
-+++ memreusedist +++
++++ memstackdist +++
 
 RESET: bucket counts (including cold reference and memory access counts)
 
@@ -396,7 +396,7 @@ FORMAT:
 
 num_64-byte_blocks_data<space>num_4KB_pages_data<space>num_64-byte_blocks_instr<space>num_4KB_pages_instr
 
-+++ memreusedist +++
++++ memstackdist +++
 
 FORMAT:
 

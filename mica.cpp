@@ -34,7 +34,7 @@
 #include "mica_reg.h"
 #include "mica_stride.h"
 #include "mica_memfootprint.h"
-#include "mica_memreusedist.h"
+#include "mica_memstackdist.h"
 
 #include <sstream>
 #include <iostream>
@@ -57,7 +57,7 @@ ins_buffer_entry* ins_buffer[MAX_MEM_TABLE_ENTRIES];
 UINT32 _ilp_win_size;
 char* _itypes_spec_file;
 
-/* ILP, MEMFOOTPRINT, MEMREUSEDIST */
+/* ILP, MEMFOOTPRINT, MEMSTACKDIST */
 UINT32 _block_size;
 
 /* MEMFOOTPRINT */
@@ -171,7 +171,7 @@ VOID Instruction_all(INS ins, VOID* v){
 	//instrument_reg(ins, e);
 	//instrument_stride(ins, v);
 	//instrument_memfootprint(ins, v);
-	//instrument_memreusedist(ins, v);
+	//instrument_memstackdist(ins, v);
 	instrument_all(ins, v, e);
 }
 
@@ -182,7 +182,7 @@ VOID Fini_all(INT32 code, VOID* v){
 	fini_reg(code, v);
 	fini_stride(code, v);
 	fini_memfootprint(code, v);
-	fini_memreusedist(code, v);
+	fini_memstackdist(code, v);
 }
 
 /* ILP */
@@ -405,8 +405,8 @@ VOID Fini_memfootprint_only(INT32 code, VOID* v){
 	fini_memfootprint(code, v);
 }
 
-/* MEMREUSEDIST */
-VOID Instruction_memreusedist_only(INS ins, VOID* v){
+/* MEMSTACKDIST */
+VOID Instruction_memstackdist_only(INS ins, VOID* v){
 	if(interval_size == -1){
 		if(INS_HasRealRep(ins)){
 			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
@@ -428,11 +428,11 @@ VOID Instruction_memreusedist_only(INS ins, VOID* v){
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_always, IARG_END);
 	}
 
-	instrument_memreusedist(ins, v);
+	instrument_memstackdist(ins, v);
 }
 
-VOID Fini_memreusedist_only(INT32 code, VOID* v){
-	fini_memreusedist(code, v);
+VOID Fini_memstackdist_only(INT32 code, VOID* v){
+	fini_memstackdist(code, v);
 }
 
 /* MY TYPE */
@@ -473,7 +473,7 @@ VOID Instruction_custom(INS ins, VOID* v){
 	//instrument_reg(ins, e);
 	//instrument_stride(ins, v);
 	//instrument_memfootprint(ins, v);
-	//instrument_memreusedist(ins, v);
+	//instrument_memstackdist(ins, v);
 }
 
 VOID Fini_custom(INT32 code, VOID* v){
@@ -484,7 +484,7 @@ VOID Fini_custom(INT32 code, VOID* v){
 	//fini_reg(code, v);
 	//fini_stride(code, v);
 	//fini_memfootprint(code, v);
-	//fini_memreusedist(code, v);
+	//fini_memstackdist(code, v);
 }
 
 void init_custom(){
@@ -495,7 +495,7 @@ void init_custom(){
 	//init_reg();
 	//init_stride();
 	//init_memfootprint();
-	//init_memreusedist();
+	//init_memstackdist();
 }
 
 
@@ -581,11 +581,11 @@ int main(int argc, char* argv[]){
 			INS_AddInstrumentFunction(Instruction_memfootprint_only, 0);
 			PIN_AddFiniFunction(Fini_memfootprint_only, 0);
 			break;
-		case MODE_MEMREUSEDIST:
-			init_memreusedist();
+		case MODE_MEMSTACKDIST:
+			init_memstackdist();
 			PIN_Init(argc, argv);
-			INS_AddInstrumentFunction(Instruction_memreusedist_only, 0);
-			PIN_AddFiniFunction(Fini_memreusedist_only, 0);
+			INS_AddInstrumentFunction(Instruction_memstackdist_only, 0);
+			PIN_AddFiniFunction(Fini_memstackdist_only, 0);
 			break;
 		case MODE_CUSTOM:
 			init_custom();
