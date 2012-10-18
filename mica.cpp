@@ -184,6 +184,7 @@ VOID Fini_all(INT32 code, VOID* v){
 	fini_stride(code, v);
 	fini_memfootprint(code, v);
 	fini_memstackdist(code, v);
+	fini_fullmemstackdist(code, v);
 }
 
 /* ILP */
