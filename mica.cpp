@@ -35,7 +35,7 @@
 #include "mica_stride.h"
 #include "mica_memfootprint.h"
 #include "mica_memstackdist.h"
-#include "mica_memreusedist2.h"
+#include "mica_fullmemstackdist.h"
 
 #include <sstream>
 #include <iostream>
@@ -436,8 +436,8 @@ VOID Fini_memstackdist_only(INT32 code, VOID* v){
 	fini_memstackdist(code, v);
 }
 
-/* MEMREUSEDIST2 */
-VOID Instruction_memreusedist2_only(INS ins, VOID* v){
+/* FULLMEMSTACKDIST */
+VOID Instruction_fullmemstackdist_only(INS ins, VOID* v){
 	if(interval_size == -1){
 		if(INS_HasRealRep(ins)){
 			INS_InsertIfCall(ins, IPOINT_BEFORE, (AFUNPTR)returnArg, IARG_FIRST_REP_ITERATION, IARG_END);
@@ -459,11 +459,11 @@ VOID Instruction_memreusedist2_only(INS ins, VOID* v){
 		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_intervals_count_always, IARG_END);
 	}
 
-	instrument_memreusedist2(ins, v);
+	instrument_fullmemstackdist(ins, v);
 }
 
-VOID Fini_memreusedist2_only(INT32 code, VOID* v){
-	fini_memreusedist2(code, v);
+VOID Fini_fullmemstackdist_only(INT32 code, VOID* v){
+	fini_fullmemstackdist(code, v);
 }
 
 
@@ -620,11 +620,11 @@ int main(int argc, char* argv[]){
 			INS_AddInstrumentFunction(Instruction_memstackdist_only, 0);
 			PIN_AddFiniFunction(Fini_memstackdist_only, 0);
 			break;
-		case MODE_MEMREUSEDIST2:
-			init_memreusedist2();
+		case MODE_FULLMEMSTACKDIST:
+			init_fullmemstackdist();
 			PIN_Init(argc, argv);
-			INS_AddInstrumentFunction(Instruction_memreusedist2_only, 0);
-			PIN_AddFiniFunction(Fini_memreusedist2_only, 0);
+			INS_AddInstrumentFunction(Instruction_fullmemstackdist_only, 0);
+			PIN_AddFiniFunction(Fini_fullmemstackdist_only, 0);
 			break;
 		case MODE_CUSTOM:
 			init_custom();
