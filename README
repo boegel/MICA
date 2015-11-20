@@ -3,6 +3,7 @@ MICA: Microarchitecture-Independent Characterization of Applications
 version 0.40
 
 Kenneth Hoste & Lieven Eeckhout (Ghent University, Belgium)
+current maintainer: Amir Hossein Ashouri (Politecnico Di Milano, Italy)
 
 with contributions by:
 - Hamid Fadishei (multi-process support)
