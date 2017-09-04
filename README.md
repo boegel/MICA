@@ -5,7 +5,7 @@ version 0.40
 [Kenneth Hoste](http://kejo.be/ELIS/) & [Lieven Eeckhout](http://users.elis.ugent.be/~leeckhou/) (Ghent University, Belgium)
 
 Current maintainer: 
-[Amir H. Ashouri](www.eecg.toronto.edu/~aashouri/) (University of Toronto, Canada)
+[Amir H. Ashouri](http://www.eecg.toronto.edu/~aashouri/) (University of Toronto, Canada)
 
 with contributions by:
 - Hamid Fadishei (multi-process support)
