@@ -3,14 +3,14 @@ MICA: Microarchitecture-Independent Characterization of Applications
 version 0.40
 
 Kenneth Hoste & Lieven Eeckhout (Ghent University, Belgium)
-current maintainer: Amir Hossein Ashouri (Politecnico Di Milano, Italy)
+current maintainer: Amir Hossein Ashouri (University of Toronto, Canada)
 
 with contributions by:
 - Hamid Fadishei (multi-process support)
 - Petr Tuma (code cleanup)
 - Maxime Chéramy (cleanup, bug fixes, additional features)
 
-website: http://boegel.kejo.be/ELIS/MICA (http://www.elis.ugent.be/~kehoste/mica)
+[Websites:](http://boegel.kejo.be/ELIS/MICA), (http://www.elis.ugent.be/~kehoste/mica)
 
 A set of tutorial slides on MICA, which were presented at IISWC-2007 are
 available from the MICA website.
