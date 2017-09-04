@@ -425,7 +425,7 @@ This will tell MICA to append the current process ID to the report file names so
 Additionally, you should pass "-follow_execv 1" parameter to pin in order to trace multiprocess applications.
 
 ------------------------------------------------------------------
-# MICA Table Genrerator
+# Complete list of Headers - Table Generation
 For ease of use, we provide tableGen.sh and it automatically look for all mica output instrumented output files beloging to a unique Pid and generate a table with headers. Please refer to the headers in the script for the complete set of names.
 
 ------------------------------------------------------------------
