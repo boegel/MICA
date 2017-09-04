@@ -421,4 +421,11 @@ append_pid: yes
 
 This will tell MICA to append the current process ID to the report file names so multiple processes do not overwrite each other's output.
 Additionally, you should pass "-follow_execv 1" parameter to pin in order to trace multiprocess applications.
- 
+
+------------------------------------------------------------------
+# Examples of using MICA in the recent literature:
+
+You can see an example of using MICA in building prediction models targetted to Compiler optimization problems here at [COBAYN's github page](https://github.com/amirjamez/COBAYN). There is also a provided dataset located at:
+```
+COBAYN/data/ft_MICA_cbench.csv
+```
