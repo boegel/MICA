@@ -10,7 +10,9 @@ with contributions by:
 - Petr Tuma (code cleanup)
 - Maxime Chéramy (cleanup, bug fixes, additional features)
 
-[Websites:](http://boegel.kejo.be/ELIS/MICA), (http://www.elis.ugent.be/~kehoste/mica)
+Websites:
+(http://boegel.kejo.be/ELIS/MICA) 
+(http://www.elis.ugent.be/~kehoste/mica)
 
 A set of tutorial slides on MICA, which were presented at IISWC-2007 are
 available from the MICA website.
@@ -47,22 +49,22 @@ per interval of N dynamic instructions.
 Specifying the parameters is done using the mica.conf configuration file. 
 A sample mica.conf file is provided with the distribution, and details
 on how to specify the parameters are found below.
-
+```
 analysis_type: all | ilp | ilp_one | itypes | ppm | reg | stride | memfootprint | memstackdist | custom
 interval_size: full | <size>
 [ilp_size: <size>]
 [block_size: <2^size>]
 [page_size: <2^size>]
 [itypes_spec_file: <file>]
-
+```
 example:
-
+```
 analysis_type: all
 interval_size: 100000000
 block_size: 6
 page_size: 12
 itypes_spec_file: itypes_default.spec
-
+```
 
 specifies to measure all supported characteristics per interval of 100,000,000 instructions,
 with block size of 64 (2^6), page size of 4K (2^12), and using the instruction mix categories
@@ -72,9 +74,9 @@ described in the file itypes_default.spec
 -------
 
 Using MICA is very easy; just run:
-
+```
 pin -t mica.so -- <program> [<parameter>]
-
+```
 The type of analysis is specified in the mica.conf file, and some
 logging is written to mica.log.
 
@@ -83,7 +85,7 @@ logging is written to mica.log.
 
 (I realize the output file names are a bit strange, but that's just the way I
 chose them... It's easy to adjust them yourself! ).
-
+```
 ilp: 
 	full: ilp_full_int_pin.out
 	interval: ilp_phases_int_pin.out
@@ -108,7 +110,7 @@ memfootprint:
 memstackdist: 
 	full: memstackdist_full_int_pin.out
 	interval: memstackdist_phases_int_pin.out
-	
+```	
 
 * Full execution metrics
 -----------------------------------
@@ -423,7 +425,11 @@ This will tell MICA to append the current process ID to the report file names so
 Additionally, you should pass "-follow_execv 1" parameter to pin in order to trace multiprocess applications.
 
 ------------------------------------------------------------------
-# Examples of using MICA in the recent literature:
+# MICA Table Genrerator
+For ease of use, we provide tableGen.sh and it automatically look for all mica output instrumented output files beloging to a unique Pid and generate a table with headers. Please refer to the headers in the script for the complete set of names.
+
+------------------------------------------------------------------
+# Examples of using MICA in the recent literature
 
 You can see an example of using MICA in building prediction models targetted to Compiler optimization problems here at [COBAYN's github page](https://github.com/amirjamez/COBAYN). There is also a provided dataset located at:
 ```
