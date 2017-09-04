@@ -2,8 +2,8 @@ MICA: Microarchitecture-Independent Characterization of Applications
 ====================================================================
 version 0.40
 
-Kenneth Hoste & Lieven Eeckhout (Ghent University, Belgium)
-current maintainer: Amir Hossein Ashouri (University of Toronto, Canada)
+[Kenneth Hoste](http://kejo.be/ELIS/) & [Lieven Eeckhout](http://users.elis.ugent.be/~leeckhou/) (Ghent University, Belgium)
+current maintainer: [Amir Hossein Ashouri](www.eecg.toronto.edu/~aashouri/) (University of Toronto, Canada)
 
 with contributions by:
 - Hamid Fadishei (multi-process support)
@@ -17,15 +17,15 @@ Websites:
 A set of tutorial slides on MICA, which were presented at IISWC-2007 are
 available from the MICA website.
 
-* Disclaimer
+# Disclaimer
 ------------
 
-This software was only tested on Linux/x86. Anyone who wants to use it on a different 
-platform supported by Pin is free to do so, but should expect problems...
+Currently, this software is only tested on Linux/x86 and Pin-2.10-45467. Anyone who wants to use it on a different 
+platform supported by Pin is free to do so, but should expect problems. We work on adapting MICA on newer Pin versions.
 
 Any problem reports or questions are welcome at kenneth.hoste@ugent.be .
 
-* Compilation
+# Compilation
 --------------
 
 The easiest way to compile MICA is to add unzip/untar mica_vXYZ.tar.gz to the source/tools
@@ -39,7 +39,7 @@ also supported. To build MICA using the Intel C++ compiler, run "make CXX=icpc".
 Make sure /opt/intel/lib is added to the LD_LIBRARY_PATH environment variable to
 use MICA built using the Intel compilers.
 
-* Specifying type of analysis
+# Specifying type of analysis
 -----------------------------
 
 MICA supports various types of microarchitecture-independent characteristics.
@@ -57,7 +57,7 @@ interval_size: full | <size>
 [page_size: <2^size>]
 [itypes_spec_file: <file>]
 ```
-example:
+## example:
 ```
 analysis_type: all
 interval_size: 100000000
@@ -70,7 +70,7 @@ specifies to measure all supported characteristics per interval of 100,000,000 i
 with block size of 64 (2^6), page size of 4K (2^12), and using the instruction mix categories
 described in the file itypes_default.spec
 
-* Usage
+## Usage
 -------
 
 Using MICA is very easy; just run:
@@ -80,7 +80,7 @@ pin -t mica.so -- <program> [<parameter>]
 The type of analysis is specified in the mica.conf file, and some
 logging is written to mica.log.
 
-* Output files
+## Output files
 ---------------
 
 (I realize the output file names are a bit strange, but that's just the way I
@@ -112,39 +112,39 @@ memstackdist:
 	interval: memstackdist_phases_int_pin.out
 ```	
 
-* Full execution metrics
+## Full execution metrics
 -----------------------------------
 
-+++ ilp +++
+### +++ ilp +++
 
 Instruction-Level Parallellism (ILP) available for four different instruction
 window sizes (32, 64, 128, 256).  
 This is measured by assuming perfect caches, perfect branch prediction, etc.  
 The only limitations are the instruction window size and the data dependences.
-
+```
 analysis_type: ilp
-
+```
 Besides measuring these four window sizes at once, MICA also supports
 specifying a single window size, which is specified as follows (for 
 characterizing the full run using an instruction window of 32 entries):
-
+```
 analysis_type: ilp_one
 interval_size: full
 ilp_size: 32
-
+```
 You can tweak the block size used using the block_size configuration parameter.
 
-+++ itypes +++
-
+### +++ itypes +++
+```
 analysis_type: itypes
-
-Instruction mix.
+```
+### +++ Instruction mix +++
 
 The instruction mix is evaluated by categorizing the executed instructions.
 Because the x86 architecture isn't a load-store architecture, we count memory
 reads/writes seperately. The following categories are used by default (in order 
 of output):
-
+```
 - memory read (instructions which read from memory)
 - memory write (instructions which write to memory)
 - control flow
@@ -156,14 +156,14 @@ of output):
 - sse
 - other
 - nop
-
+```
 It is possible to redefine the instruction mix categories, by creating a specification
 file and mentioning it in the mica.conf file (itypes_spec_file).
 
-+++ ppm +++
-
+### +++ ppm +++
+```
 analysis_type: ppm
-
+```
 Branch predictability. 
 
 The branch predictability of the conditional branches in the program is
@@ -172,51 +172,51 @@ configurations (global/local branch history, shared/seperate prediction
 table(s)), using 3 different history length (4,8,12 bits).  Additionally,
 average taken and transition count are also being measured.
 
-+++ reg +++
-
+### +++ reg +++
+```
 analysis_type: reg
-
-Register traffic.
+```
+### Register traffic.
 
 The register traffic is analyzed in different aspects:
-
+```
 - average number of register operands
 - average degree of use
 - dependency distances (prob. <= D)
 
 Dependency distances are chosen in powers of 2, i.e. 1, 2, 4, 8, 16, 32, 64
-
-+++ stride +++
-
+```
+### +++ stride +++
+```
 analysis_type: stride
-
+```
 Data stream strides.
 
 The distances between subsequent memory accesses are characterised by:
-
+```
 - local load (memory read) strides
 - global load (memory read) strides
 - local store (memory write) strides
 - global store (memory write) strides
-
+```
 Local means per static instruction accesses, global means over all
 instructions. The strides are characterized by powers of 8 (prob. <= 0, 8, 64,
 512, 4096, 32768, 262144)
 
-+++ memfootprint +++
-
+### +++ memfootprint +++
+```
 analysis_type: memfootprint
-
+```
 Instruction and data memory footprint.
 
 The size of the instruction and data memory footprint is characterized by
 counting the number of blocks (64-byte) and pages (4KB) touched. This
 is done seperately for data and instruction addresses.
 
-+++ memstackdist +++
-
+### +++ memstackdist +++
+```
 analysis_type: memstackdist
-
+```
 Memory reuse distances.
 
 This is a highly valuable set of numbers to characterize the cache behavior
@@ -243,14 +243,14 @@ To track the progress of the MICA analysis being run, see the mica_progress.txt 
 which shows how many dynamic instructions have been analyzed. Disabling this can be
 done by removing the -DVERBOSE flag in the Makefile and rebuilding MICA. 
 
-* Interval metrics
+### * Interval metrics
 -------------------
 
 Besides characterization total program execution, the tool is also capable of
 characterizing interval behavior.  The analysis are identical to the tools
 above, but flush the state for each new each interval.
 
-+++ ilp +++
+### +++ ilp +++
 
 RESET: instruction and cycle counters (per interval), free memory used for
 memory address stuff (to avoid huge memory requirements for large workloads)
@@ -301,11 +301,11 @@ numbers in certain situations with previous Pin kits), we only print out
 integer values and convert to floating-point metrics offline. This also allows
 aggregating data measured per interval to larger intervals or full execution
 for most characteristics.
-
+```
 S: interval size
 N: number of intervals
 I: number of instructions
-
+```
 +++ ilp +++
 
 FORMAT:
@@ -369,14 +369,14 @@ FORMAT:
 instr_cnt<space>total_oper_cnt<space>instr_reg_cnt<space>total_reg_use_cnt<space>total_reg_age<space>reg_age_cnt_1<space>reg_age_cnt_2<space>reg_age_cnt_4<space>...<space>reg_age_cnt_64
 
 CONVERSION:
-
+```
 total_oper_cnt/instr_cnt
 total_reg_use_cnt/instr_reg_cnt 
 reg_age_cnt_1/total_reg_age 
 reg_age_cnt_2/total_reg_age 
 ...
 reg_age_cnt_64/total_reg_age
-
+```
 +++ stride +++
 
 FORMAT:
@@ -418,9 +418,9 @@ acc_cnt_rest/mem_access_cnt
 -----------------------------------
 
 If you want to use MICA on multiprocess binaries which call fork and execv, you should specify this entry in the MICA configuration file:
-
+```
 append_pid: yes
-
+```
 This will tell MICA to append the current process ID to the report file names so multiple processes do not overwrite each other's output.
 Additionally, you should pass "-follow_execv 1" parameter to pin in order to trace multiprocess applications.
 
