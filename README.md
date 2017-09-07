@@ -317,11 +317,11 @@ instruction_count<space>cycle_count_win_size_1<space>cycle_count_win_size_2<spac
 CONVERSION:
 
 instruction_count/cycle_count
-
+```
 i.e.
 1 to (N-1)th line: S/cycle_count_win_size_i
 Nth line: (I-N*S)/cycle_count_win_size_i
-
+```
 +++ itypes +++
 
 FORMAT:  
@@ -329,11 +329,11 @@ FORMAT:
 instruction_cnt<space>mem_read_cnt<space>mem_write_cnt<space>control_cnt<space>arith_cnt<space>fp_cnt<space>stack_cnt<space>shift_cnt<space>string_cnt<space>sse_cnt<space>system_cnt<space>nop_cnt<space>other_cnt
 
 CONVERSION:
-
+```
 mem_write_cnt/instruction_cnt
 ...
 other_cnt/instruction_cnt
-
+```
 NOTE
 
 Note that simply adding the (n-1) last numbers won't necceseraly yield the first number.
@@ -359,11 +359,11 @@ FORMAT:
 instr_cnt<space>GAg_mispred_cnt_4bits<space>PAg_mispred_cnt_4bits<space>GAs_mispred_cnt_4bits<space>PAs_mispred_cnt_4bits<space>...<space>PAs_mispred_cnt_12bits
 
 CONVERSION:
-
+```
 GAg_mispred_cnt_Kbits/instr_cnt
 ...
 PAs_mispred_cnt_Kbits/instr_cnt
-
+```
 +++ reg +++
 
 FORMAT:
@@ -409,13 +409,13 @@ FORMAT:
 mem_access_cnt<space>cold_ref_cnt<space>acc_cnt_0-2<space>acc_cnt_2-2^2<space>acc_cnt_2^2-2^3<space>...<space>acc_cnt_2^17-2^18<space>acc_cnt_over_2^18
 
 CONVERSION:
-
+```
 cold_ref_cnt/mem_access_cnt
 acc_cnt_0/mem_access_cnt
 ...
 acc_cnt_2^18-2^19/mem_access_cnt
 acc_cnt_rest/mem_access_cnt
-
+```
 * Multi-process binaries
 -----------------------------------
 
@@ -428,12 +428,12 @@ Additionally, you should pass "-follow_execv 1" parameter to pin in order to tra
 
 ------------------------------------------------------------------
 # Complete list of Headers - Table Generation
-For ease of use, we provide tableGen.sh and it automatically look for all mica output instrumented output files beloging to a unique Pid and generate a table with headers. Please refer to the headers in the script for the complete set of names.
+For ease of use, we provide tableGen.sh to automatically look for all mica instrumented output files beloging to a unique Pid. It generates a CSV file having the first row as the headers. Please refer to the headers in the script for the complete set of names.
 
 ------------------------------------------------------------------
 # Examples of using MICA in the recent literature
 
 You can see an example of using MICA in building prediction models targetted to Compiler optimization problems here at [COBAYN's github page](https://github.com/amirjamez/COBAYN). There is also a provided dataset located at:
 ```
-COBAYN/data/ft_MICA_cbench.csv
+>>COBAYN/data/ft_MICA_cbench.csv
 ```
