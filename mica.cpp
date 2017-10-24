@@ -73,8 +73,8 @@ int thread_count = 0;
  *                    MAIN                    *
  **********************************************/
 
-//FILE* log;
-ofstream log;
+//FILE* _log;
+ofstream _log;
 
 
 /* append <pid>_pin.out to name if necessary */
@@ -517,9 +517,9 @@ int main(int argc, char* argv[]){
 	int i;
 	MODE mode;
 
-	setup_mica_log(&log);
+	setup_mica_log(&_log);
 
-	read_config(&log, &interval_size, &mode, &_ilp_win_size, &_block_size, &_page_size, &_itypes_spec_file, &append_pid);
+	read_config(&_log, &interval_size, &mode, &_ilp_win_size, &_block_size, &_page_size, &_itypes_spec_file, &append_pid);
 
 	cerr << "interval_size: " << interval_size << ", mode: " << mode << endl;
 
@@ -595,7 +595,7 @@ int main(int argc, char* argv[]){
 			break;
 		default:
 			cerr << "FATAL ERROR: Unknown mode while trying to allocate memory for Pin tool!" << endl;
-			log << "FATAL ERROR: Unknown mode while trying to allocate memory for Pin tool!" << endl;
+			_log << "FATAL ERROR: Unknown mode while trying to allocate memory for Pin tool!" << endl;
 			exit(1);
 	}
 

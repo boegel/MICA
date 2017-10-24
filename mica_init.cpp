@@ -7,6 +7,10 @@
  * information.
  */
 
+//#include <cstdint>
+//#include <sys/mount.h>
+//#include <limits.h>
+
 /* MICA includes */
 #include "mica_init.h"
 
@@ -30,8 +34,7 @@ void setup_mica_log(ofstream *log){
  * ilp_size: <integer>
  * itypes_spec_file: <string>
  */
-
-enum CONFIG_PARAM {UNKNOWN_CONFIG_PARAM = -1, ANALYSIS_TYPE = 0, INTERVAL_SIZE, ILP_SIZE, BLOCK_SIZE, PAGE_SIZE, ITYPES_SPEC_FILE, APPEND_PID, CONF_PAR_CNT};
+enum CONFIG_PARAM {UNKNOWN_CONFIG_PARAM = -1, ANALYSIS_TYPE = 0, INTERVAL_SIZE, ILP_SIZE, _BLOCK_SIZE, _PAGE_SIZE, ITYPES_SPEC_FILE, APPEND_PID, CONF_PAR_CNT};
 const char* config_params_str[CONF_PAR_CNT] = {"analysis_type",   "interval_size", "ilp_size", "block_size", "page_size", "itypes_spec_file"};
 enum ANALYSIS_TYPE {UNKNOWN_ANALYSIS_TYPE = -1, ALL=0, ILP, ILP_ONE, ITYPES, PPM, MICA_REG, STRIDE, MEMFOOTPRINT, MEMSTACKDIST, CUSTOM, ANA_TYPE_CNT};
 const char* analysis_types_str[ANA_TYPE_CNT] = { "all",   "ilp", "ilp_one", "itypes", "ppm", "reg", "stride", "memfootprint", "memstackdist", "custom"};
@@ -41,8 +44,8 @@ enum CONFIG_PARAM findConfigParam(char* s){
 	if(strcmp(s, "analysis_type") == 0){ return ANALYSIS_TYPE; }
 	if(strcmp(s, "interval_size") == 0){ return INTERVAL_SIZE; }
 	if(strcmp(s, "ilp_size") == 0){ return ILP_SIZE; }
-	if(strcmp(s, "block_size") == 0){ return BLOCK_SIZE; }
-	if(strcmp(s, "page_size") == 0){ return PAGE_SIZE; }
+	if(strcmp(s, "block_size") == 0){ return _BLOCK_SIZE; }
+	if(strcmp(s, "page_size") == 0){ return _PAGE_SIZE; }
 	if(strcmp(s, "itypes_spec_file") == 0){ return ITYPES_SPEC_FILE; }
 	if(strcmp(s, "append_pid") == 0){ return APPEND_PID; }
 
@@ -199,13 +202,13 @@ void read_config(ofstream* log, INT64* intervalSize, MODE* mode, UINT32* _ilp_wi
 				(*log) << "ILP window size: " << *_ilp_win_size << endl;
 				break;
 
-			case BLOCK_SIZE:
+			case _BLOCK_SIZE:
 				*_block_size = (UINT32)atoi(val);
 				cerr << "block size: 2^" << *_block_size << endl;
 				(*log) << "block size: 2^" << *_block_size << endl;
 				break;
 
-			case PAGE_SIZE:
+			case _PAGE_SIZE:
 				*_page_size = (UINT32)atoi(val);
 				cerr << "page size: 2^" << *_page_size << endl;
 				(*log) << "page size: 2^" << *_page_size << endl;
