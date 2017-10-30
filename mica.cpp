@@ -80,12 +80,16 @@ ofstream _log;
 /* append <pid>_pin.out to name if necessary */
 const char *mkfilename(const char *name)
 {
-	stringstream ret;
-	if (append_pid)
-		ret << name << "_" << setfill('0') << setw(5) << getpid() << "_pin.out";
-	else
-		ret << name << "_pin.out";
-	return ret.str().c_str();
+    char retx[100];
+	if (append_pid){
+        sprintf(retx,"%s_%d_pin.out",name,getpid());
+    }
+	else{
+        sprintf(retx,"%s_pin.out",name);
+    }
+    char * x = (char*)malloc(sizeof(const char)*100);
+    strcpy(x,retx);
+	return (const char*)x;
 }
 
 // find buffer entry for instruction at given address in a hash table

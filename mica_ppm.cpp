@@ -532,8 +532,9 @@ void register_condBr(ADDRINT ins_addr){
 	indices_condBr[numStatCondBranchInst++] = ins_addr;
 }
 
+static int _count  = 0;
 VOID instrument_ppm_cond_br(INS ins){
-	UINT32 index = index_condBr(INS_Address(ins));
+    UINT32 index = index_condBr(INS_Address(ins));
 	if(index < 1){
 
 		/* We don't know the number of static conditional branch instructions up front,
@@ -544,8 +545,21 @@ VOID instrument_ppm_cond_br(INS ins){
 		index = numStatCondBranchInst;
 
 		register_condBr(INS_Address(ins));
+        register_condBr(INS_Address(ins));
 	}
-	INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)condBr, IARG_UINT32, index, IARG_BRANCH_TAKEN, IARG_END);
+    
+    const char* str = INS_Disassemble(ins).c_str();
+    const char* substr = "xbegin";
+    if (strncmp(str, substr, strlen(substr)) == 0){
+        printf("as of pin 3.4 -- I don't think we can parse xbegin so skipping...\n");
+        return;
+    }
+    substr = "xend";
+    if (strncmp(str, substr, strlen(substr)) == 0){
+        printf("as of pin 3.4 -- I don't think we can parse xend so skipping...\n");
+        return;
+    }
+    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)condBr,IARG_UINT32, index, IARG_BRANCH_TAKEN, IARG_END);
 }
 
 /* instrumenting (instruction level) */

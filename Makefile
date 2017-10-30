@@ -6,7 +6,7 @@ endif
 
 include $(CONFIG_ROOT)/makefile.config
 include $(TOOLS_ROOT)/Config/makefile.default.rules
-CXXFLAGS = -std=gnu++98 -DVERBOSE -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) 
+CXXFLAGS = -std=gnu++11 -DVERBOSE -Wall -Werror -Wno-unknown-pragmas $(DBG) $(OPT) 
 
 SRC_DIR := .
 SRC_FILES := $(wildcard $(SRC_DIR)/*.cpp)
