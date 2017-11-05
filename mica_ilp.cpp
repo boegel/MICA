@@ -138,9 +138,9 @@ void init_ilp_one(){
 			cerr << "ERROR! Interval size is not a multiple of ILP buffer size. (" << interval_size << " vs " << ILP_BUFFER_SIZE << ")" << endl;
 			exit(-1);
 		}
-		stringstream filename;
-		filename << "ilp-win" << win_size << "_phases_int";
-		output_file_ilp_one.open(mkfilename(filename.str().c_str()), ios::out|ios::trunc);
+		char filename[100];
+        sprintf(filename, "ilp-win%d_phases_int", win_size);
+		output_file_ilp_one.open(mkfilename(filename), ios::out|ios::trunc);
 		output_file_ilp_one.close();
 	}
 }
@@ -207,9 +207,10 @@ VOID ilp_instr_intervals_one(){
 
 	if(interval_ins_count_for_hpc_alignment == interval_size){
 
-		stringstream filename;
-		filename << "ilp-win" << win_size << "_phases_int";
-		output_file_ilp_one.open(mkfilename(filename.str().c_str()), ios::out|ios::app);
+        char filename[100];
+        sprintf(filename, "ilp-win%d_phases_int", win_size);
+
+		output_file_ilp_one.open(mkfilename(filename), ios::out|ios::app);
 
 		output_file_ilp_one << interval_size << " " << cpuClock_interval << endl;
 
@@ -408,18 +409,19 @@ VOID writeMem_ilp_one(ADDRINT effAddr, ADDRINT size){
 /* finishing... */
 VOID fini_ilp_one(INT32 code, VOID* v){
 
-	stringstream filename;
+    char filename[100];
 
 	fini_ilp_buffering_one();
 
 	if(interval_size == -1){
-		filename << "ilp-win" << win_size << "_full_int";
-		output_file_ilp_one.open(mkfilename(filename.str().c_str()), ios::out|ios::trunc);
+        sprintf(filename, "ilp-win%d_full_int", win_size);
+
+        output_file_ilp_one.open(mkfilename(filename), ios::out|ios::trunc);
 		output_file_ilp_one << total_ins_count;
 	}
 	else{
-		filename << "ilp-win" << win_size << "_phases_int";
-		output_file_ilp_one.open(mkfilename(filename.str().c_str()), ios::out|ios::app);
+        sprintf(filename, "ilp-win%d_phases_int", win_size);
+        output_file_ilp_one.open(mkfilename(filename), ios::out|ios::app);
 		output_file_ilp_one << interval_ins_count;
 	}
 	output_file_ilp_one << " " << cpuClock_interval << endl;

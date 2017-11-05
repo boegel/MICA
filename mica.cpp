@@ -73,19 +73,23 @@ int thread_count = 0;
  *                    MAIN                    *
  **********************************************/
 
-//FILE* log;
-ofstream log;
+//FILE* _log;
+ofstream _log;
 
 
 /* append <pid>_pin.out to name if necessary */
 const char *mkfilename(const char *name)
 {
-	stringstream ret;
-	if (append_pid)
-		ret << name << "_" << setfill('0') << setw(5) << getpid() << "_pin.out";
-	else
-		ret << name << "_pin.out";
-	return ret.str().c_str();
+    char retx[100];
+	if (append_pid){
+        sprintf(retx,"%s_%d_pin.out",name,getpid());
+    }
+	else{
+        sprintf(retx,"%s_pin.out",name);
+    }
+    char * x = (char*)malloc(sizeof(const char)*100);
+    strcpy(x,retx);
+	return (const char*)x;
 }
 
 // find buffer entry for instruction at given address in a hash table
@@ -517,9 +521,9 @@ int main(int argc, char* argv[]){
 	int i;
 	MODE mode;
 
-	setup_mica_log(&log);
+	setup_mica_log(&_log);
 
-	read_config(&log, &interval_size, &mode, &_ilp_win_size, &_block_size, &_page_size, &_itypes_spec_file, &append_pid);
+	read_config(&_log, &interval_size, &mode, &_ilp_win_size, &_block_size, &_page_size, &_itypes_spec_file, &append_pid);
 
 	cerr << "interval_size: " << interval_size << ", mode: " << mode << endl;
 
@@ -595,7 +599,7 @@ int main(int argc, char* argv[]){
 			break;
 		default:
 			cerr << "FATAL ERROR: Unknown mode while trying to allocate memory for Pin tool!" << endl;
-			log << "FATAL ERROR: Unknown mode while trying to allocate memory for Pin tool!" << endl;
+			_log << "FATAL ERROR: Unknown mode while trying to allocate memory for Pin tool!" << endl;
 			exit(1);
 	}
 

@@ -28,7 +28,7 @@ extern int append_pid;
 
 /* *** conditional debugging *** */
 
-#define LOG_MSG(x) log << x << endl;
+#define LOG_MSG(x) _log << x << endl;
 #define DEBUG_MSG(x) cerr << "DEBUG: " << x << endl;
 
 #define WARNING_MSG(x) cerr << "WARNING: " << x << endl;
