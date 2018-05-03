@@ -1,6 +1,6 @@
 MICA: Microarchitecture-Independent Characterization of Applications
 ====================================================================
-version 0.40
+version 1.0
 
 [Kenneth Hoste](http://kejo.be/ELIS/) & [Lieven Eeckhout](http://users.elis.ugent.be/~leeckhou/) (Ghent University, Belgium)
 
