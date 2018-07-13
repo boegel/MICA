@@ -22,7 +22,7 @@ available from the MICA website.
 # Disclaimer
 ------------
 
-Currently, this software is only tested on Linux/x86 and [Pin-2.10-45467](https://drive.google.com/file/d/0B-AkmAlNRsymNVl1RndzbFVpZEU/view?usp=sharing). Anyone who wants to use it on a different 
+Currently, this software is only tested on Linux/x86 and [Pin-3](https://software.intel.com/en-us/articles/pin-a-binary-instrumentation-tool-downloads). Anyone who wants to use it on a different 
 platform supported by Pin is free to do so, but should expect problems. We work on adapting MICA on newer Pin versions.
 
 Any problem reports or questions are welcome at kenneth.hoste@ugent.be .
