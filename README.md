@@ -22,7 +22,7 @@ available from the MICA website.
 # Disclaimer
 ------------
 
-Currently, this software is only tested on Linux/x86 and [Pin-3](https://software.intel.com/en-us/articles/pin-a-binary-instrumentation-tool-downloads). Anyone who wants to use it on a different 
+Currently, this software is only tested on Linux/x86 and [Pin.2.10](https://drive.google.com/file/d/0B-AkmAlNRsymNVl1RndzbFVpZEU/view?usp=sharing). We had users reporting the corect installation on [Pin-3.4](https://software.intel.com/en-us/articles/pin-a-binary-instrumentation-tool-downloads) and the details are [here](https://github.com/boegel/MICA/commit/1293082a05e97854e3ccc48490d5b72e765b48bf). Anyone who wants to use it on a different 
 platform supported by Pin is free to do so, but should expect problems. We work on adapting MICA on newer Pin versions.
 
 Any problem reports or questions are welcome at kenneth.hoste@ugent.be .
