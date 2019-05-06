@@ -532,7 +532,7 @@ void register_condBr(ADDRINT ins_addr){
 	indices_condBr[numStatCondBranchInst++] = ins_addr;
 }
 
-static int _count  = 0;
+// static int _count  = 0;
 VOID instrument_ppm_cond_br(INS ins){
     UINT32 index = index_condBr(INS_Address(ins));
 	if(index < 1){
