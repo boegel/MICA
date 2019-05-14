@@ -426,7 +426,7 @@ VOID fini_ilp_one(INT32 code, VOID* v){
 	}
 	output_file_ilp_one << " " << cpuClock_interval << endl;
 
-	output_file_ilp_one << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	//output_file_ilp_one << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
 	output_file_ilp_one.close();
 }
 
