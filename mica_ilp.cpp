@@ -417,7 +417,7 @@ VOID fini_ilp_one(INT32 code, VOID* v){
         sprintf(filename, "ilp-win%d_full_int", win_size);
 
         output_file_ilp_one.open(mkfilename(filename), ios::out|ios::trunc);
-		output_file_ilp_one << total_ins_count;
+		//output_file_ilp_one << total_ins_count;
 	}
 	else{
         sprintf(filename, "ilp-win%d_phases_int", win_size);
@@ -745,7 +745,7 @@ VOID fini_ilp_all(INT32 code, VOID* v){
 
 	if(interval_size == -1){
 		output_file_ilp_all.open(mkfilename("ilp_full_int"), ios::out|ios::trunc);
-		output_file_ilp_all << total_ins_count;
+		output_file_ilp_all << total_ins_count << " ";
 	}
 	else{
 		output_file_ilp_all.open(mkfilename("ilp_phases_int"), ios::out|ios::app);
@@ -755,7 +755,7 @@ VOID fini_ilp_all(INT32 code, VOID* v){
 		output_file_ilp_all << " " << cpuClock_interval_all[i];
 
 	output_file_ilp_all << endl;
-	output_file_ilp_all << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	//output_file_ilp_all << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
 	output_file_ilp_all.close();
 }
 
