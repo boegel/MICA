@@ -401,8 +401,8 @@ VOID fini_itypes(INT32 code, VOID* v){
 
 	if(interval_size == -1){
 		output_file_itypes.open(mkfilename("itypes_full_int"), ios::out|ios::trunc);
-		output_file_itypes << total_ins_count_for_hpc_alignment << " " << total_ins_count << " ";
-		for(i=0; i < number_of_groups+1; i++){
+		output_file_itypes << total_ins_count_for_hpc_alignment << " " << total_ins_count;
+		for(i=0; i < number_of_groups; i++){
 			output_file_itypes << " " << group_counts[i];
 		}
 		output_file_itypes << endl;
@@ -416,6 +416,7 @@ VOID fini_itypes(INT32 code, VOID* v){
 		output_file_itypes << endl;
 	}
 	//output_file_itypes << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_itypes << " ";
 	output_file_itypes.close();
 
 	// print instruction categories in 'other' group of instructions

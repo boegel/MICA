@@ -292,6 +292,7 @@ VOID fini_memfootprint(INT32 code, VOID* v){
 	}
 
 	output_file_memfootprint << DmemCacheWorkingSetSize << " " << DmemPageWorkingSetSize << " " << ImemCacheWorkingSetSize << " " << ImemPageWorkingSetSize << endl;
-	output_file_memfootprint << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	//output_file_memfootprint << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_memfootprint << " ";
 	output_file_memfootprint.close();
 }

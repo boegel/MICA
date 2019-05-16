@@ -589,14 +589,14 @@ VOID fini_ppm(INT32 code, VOID* v){
 
 	if(interval_size == -1){
 		output_file_ppm.open(mkfilename("ppm_full_int"), ios::out|ios::trunc);
-		output_file_ppm << total_ins_count;
+		//output_file_ppm << total_ins_count;
 	}
 	else{
 		output_file_ppm.open(mkfilename("ppm_phases_int"), ios::out|ios::app);
-		output_file_ppm << interval_ins_count;
+		//output_file_ppm << interval_ins_count;
 	}
 	for(i=0; i < NUM_HIST_LENGTHS; i++)
-		output_file_ppm << " " << GAg_incorrect_pred[i] << " " << PAg_incorrect_pred[i] << " " << GAs_incorrect_pred[i] << " " << PAs_incorrect_pred[i];
+		output_file_ppm << GAg_incorrect_pred[i] << " " << PAg_incorrect_pred[i] << " " << GAs_incorrect_pred[i] << " " << PAs_incorrect_pred[i] << " ";
 
 	INT64 total_transition_count = 0;
 	INT64 total_taken_count = 0;
@@ -615,7 +615,8 @@ VOID fini_ppm(INT32 code, VOID* v){
 			total_brCount += local_brCounts[i];
 		}
 	}
-	output_file_ppm << " " << total_brCount << " " << total_transition_count << " " << total_taken_count << endl;
-	output_file_ppm << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_ppm << total_brCount << " " << total_transition_count << " " << total_taken_count << endl;
+	//output_file_ppm << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_ppm << " ";
 	output_file_ppm.close();
 }
