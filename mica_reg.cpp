@@ -320,11 +320,11 @@ VOID fini_reg(INT32 code, VOID* v){
 
 	if(interval_size == -1){
 		output_file_reg.open(mkfilename("reg_full_int"), ios::out|ios::trunc);
-		output_file_reg << total_ins_count;
+		//output_file_reg << total_ins_count;
 	}
 	else{
 		output_file_reg.open(mkfilename("reg_phases_int"), ios::out|ios::app);
-		output_file_reg << interval_ins_count;
+		//output_file_reg << interval_ins_count;
 	}
 
 	int i;
@@ -334,7 +334,7 @@ VOID fini_reg(INT32 code, VOID* v){
 	for(i = 1; i < MAX_NUM_OPER; i++){
 		totNumOps += opCounts[i]*i;
 	}
-	output_file_reg << " " << totNumOps;
+	output_file_reg << totNumOps;
 
 	// ** average degree of use **
 	num = 0;
@@ -362,6 +362,7 @@ VOID fini_reg(INT32 code, VOID* v){
 		}
 	}
 	output_file_reg << endl;
-	output_file_reg << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	//output_file_reg << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_reg << " ";
 	output_file_reg.close();
 }

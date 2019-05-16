@@ -468,6 +468,6 @@ VOID fini_stride(INT32 code, VOID* v){
 			break;
 		}
 	}
-	output_file_stride << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	//output_file_stride << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
 	output_file_stride.close();
 }

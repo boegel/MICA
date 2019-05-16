@@ -418,6 +418,7 @@ VOID fini_memstackdist(INT32 code, VOID* v){
 	for(i=0; i < BUCKET_CNT; i++){
 		output_file_memstackdist << " " << buckets[i];
 	}
-	output_file_memstackdist << endl << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	//output_file_memstackdist << endl << "number of instructions: " << total_ins_count_for_hpc_alignment << endl;
+	output_file_memstackdist << " ";
 	output_file_memstackdist.close();
 }
