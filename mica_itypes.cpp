@@ -71,7 +71,7 @@ VOID itypes_count(UINT32 gid){
 // initialize default groups
 VOID init_itypes_default_groups(){
 
-	number_of_groups = 11;
+	number_of_groups = 12;
 
 	group_identifiers = (identifier**)checked_malloc((number_of_groups+1)*sizeof(identifier*));
 	group_ids_cnt = (INT64*)checked_malloc((number_of_groups+1)*sizeof(INT64));
@@ -183,6 +183,12 @@ VOID init_itypes_default_groups(){
 	group_identifiers[10][0].str = checked_strdup("WIDENOP");
 	group_identifiers[10][1].type = identifier_type::ID_TYPE_CATEGORY;
 	group_identifiers[10][1].str = checked_strdup("NOP");
+
+	// register transfer instructions (move from a register to another register)
+	group_ids_cnt[11] = 1;
+	group_identifiers[11] = (identifier*)checked_malloc(group_ids_cnt[11]*sizeof(identifier));
+	group_identifiers[11][0].type = identifier_type::ID_TYPE_SPECIAL;
+	group_identifiers[11][0].str = checked_strdup("reg_transfer");
 }
 
 /* initializing */
@@ -350,6 +356,18 @@ VOID instrument_itypes(INS ins, VOID* v){
 								INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count, IARG_UINT32, i, IARG_END);
 								categorized = true;
 								break;
+							}
+							else if(strcmp(group_identifiers[i][j].str, "reg_transfer") == 0 && INS_IsMov(ins) ){
+								UINT32 flag=0,n;
+								n=INS_OperandCount(ins);
+								for(UINT32 i=0;i<n;i++){
+								    if(!INS_OperandIsReg(ins,i)){
+										flag=1;
+										break;
+								    }
+								}
+								if(flag==0)
+								    INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count, IARG_UINT32, i, IARG_END);
 							}
 							else{
 							}
