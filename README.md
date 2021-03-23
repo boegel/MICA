@@ -32,7 +32,7 @@ Any problem reports or questions are welcome at kenneth.hoste@ugent.be .
 
 The easiest way to compile MICA is to add unzip/untar mica_vXYZ.tar.gz to the source/tools
 directory of the Pin kit you are using. If you wish to place mica in a different
-directory, you'll have to adjust the makefile included accordinly.
+directory, you'll have to adjust the makefile included accordingly.
 Running 'make' should produce the 'mica_v0-X' shared library.
 
 By default, MICA is built using the GCC C++ compiler (g++).
