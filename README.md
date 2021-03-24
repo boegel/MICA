@@ -249,7 +249,7 @@ done by removing the -DVERBOSE flag in the Makefile and rebuilding MICA.
 -------------------
 
 Besides characterization total program execution, the tool is also capable of
-characterizing interval behavior.  The analysis are identical to the tools
+characterizing interval behavior.  The analysis is identical to the tools
 above, but flush the state for each new each interval.
 
 ### +++ ilp +++
