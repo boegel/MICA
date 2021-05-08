@@ -21,7 +21,8 @@ then
   echo "**********************************************************"
   echo $i
   j_pid=1
-  pidList=$(ls * |grep ilp_full_int_ |sed 's/ilp_full_int_//' |sed 's/_pin.out/ /' | tr -d "\n") 
+  pidList=$(ls * |grep ilp_full_int_ |sed 's/ilp_full_int_//' |sed 's/_pin.out/ /' | tr -d "\n")   
+  // If my PID is 19060, how can I let tableGen.sh generate the CSV file?
   for i_pid in $pidList
   do 
 	echo -en "\n$i dataset$j_pid " >> ../micaTable.txt
