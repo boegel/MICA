@@ -23,8 +23,15 @@ typedef struct identifier_type{
 VOID init_itypes();
 VOID init_itypes_default_groups();
 
+/**
+ * _instrument_itypes instrument the code without handling the intervals.
+ */
+VOID _instrument_itypes(INS ins, VOID* v);
+
+/**
+ * Call _instrument_itypes and add also handle the intervals.
+ */
 VOID instrument_itypes(INS ins, VOID* v);
-VOID instrument_itypes_bbl(TRACE trace, VOID* v);
 VOID fini_itypes(INT32 code, VOID* v);
 
 

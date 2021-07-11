@@ -235,9 +235,8 @@ VOID all_instr_interval_for_ilp(){
 
 VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 
-	UINT32 i, j, maxNumRegsProd, maxNumRegsCons, regReadCnt, regWriteCnt, opCnt, regOpCnt;
+	UINT32 i, maxNumRegsProd, maxNumRegsCons, regReadCnt, regWriteCnt, opCnt, regOpCnt;
 	REG reg;
-	BOOL categorized = false;
 	char cat[50];
 	char opcode[50];
 
@@ -388,75 +387,7 @@ VOID instrument_all(INS ins, VOID* v, ins_buffer_entry* e){
 	INS_InsertThenCall(ins, IPOINT_BEFORE, (AFUNPTR)all_instr_interval_for_ilp, IARG_END); // wrapper for empty_ilp_buffer_all
 
 	/* +++ ITYPES +++ */
-
-	// go over all groups, increase group count if instruction matches that group
-	// group counts are increased at most once per instruction executed,
-	// even if the instruction matches multiple identifiers in that group
-	for(i=0; i < number_of_groups; i++){
-		for(j=0; j < group_ids_cnt[i]; j++){
-			if(group_identifiers[i][j].type == identifier_type::ID_TYPE_CATEGORY){
-				if(strcmp(group_identifiers[i][j].str, cat) == 0){
-					INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count, IARG_UINT32, i, IARG_END);
-					categorized = true;
-					break;
-				}
-			}
-			else{
-				if(group_identifiers[i][j].type == identifier_type::ID_TYPE_OPCODE){
-					if(strcmp(group_identifiers[i][j].str, opcode) == 0){
-						INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count, IARG_UINT32, i, IARG_END);
-						categorized = true;
-						break;
-					}
-				}
-				else{
-					if(group_identifiers[i][j].type == identifier_type::ID_TYPE_SPECIAL){
-						if(strcmp(group_identifiers[i][j].str, "mem_read") == 0 && INS_IsMemoryRead(ins) ){
-							INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count, IARG_UINT32, i, IARG_END);
-							categorized = true;
-							break;
-						}
-						else{
-							if(strcmp(group_identifiers[i][j].str, "mem_write") == 0 && INS_IsMemoryWrite(ins) ){
-								INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count, IARG_UINT32, i, IARG_END);
-								categorized = true;
-								break;
-							}
-							else{
-							}
-						}
-					}
-					else{
-						cerr << "ERROR! Unknown identifier type specified (" << group_identifiers[i][j].type << ")" << endl;
-					}
-				}
-			}
-		}
-	}
-
-	// count instruction that don't fit in any of the specified categories in the last group
-	if( !categorized ){
-		INS_InsertCall(ins, IPOINT_BEFORE, (AFUNPTR)itypes_count, IARG_UINT32, (unsigned int)number_of_groups, IARG_END);
-
-		// check whether this category is already known in the 'other' group
-		for(i=0; i < other_ids_cnt; i++){
-			if(strcmp(other_group_identifiers[i].str, cat) == 0)
-				break;
-		}
-
-		// if a new instruction category is found, add it to the set
-		if(i == other_ids_cnt){
-			other_group_identifiers[other_ids_cnt].type = identifier_type::ID_TYPE_CATEGORY;
-			other_group_identifiers[other_ids_cnt].str = checked_strdup(cat);
-			other_ids_cnt++;
-		}
-
-		// prepare for (possible) next category
-		if(other_ids_cnt == other_ids_max_cnt){
-			other_ids_max_cnt *= 2;
-			other_group_identifiers = (identifier*)checked_realloc(other_group_identifiers, other_ids_max_cnt*sizeof(identifier));
-		}
-	}
+	_instrument_itypes(ins, v);
 
 	/* +++ PPM *** */
 	if(strcmp(cat,"COND_BR") == 0){

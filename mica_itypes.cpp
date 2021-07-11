@@ -314,9 +314,7 @@ VOID init_itypes(){
 	}
 }
 
-/* instrumenting (instruction level) */
-VOID instrument_itypes(INS ins, VOID* v){
-
+VOID _instrument_itypes(INS ins, VOID* v) {
 	int i,j;
 	char cat[50];
 	char opcode[50];
@@ -404,6 +402,13 @@ VOID instrument_itypes(INS ins, VOID* v){
 			other_group_identifiers = (identifier*)checked_realloc(other_group_identifiers, other_ids_max_cnt*sizeof(identifier));
 		}
 	}
+
+
+}
+
+/* instrumenting (instruction level) */
+VOID instrument_itypes(INS ins, VOID* v){
+	_instrument_itypes(ins, v);
 
 	/* inserting calls for counting instructions is done in mica.cpp */
 	if(interval_size != -1){
