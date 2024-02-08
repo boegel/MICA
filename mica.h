@@ -63,7 +63,7 @@ extern int append_pid;
 /* PPM */
 #define MAX_HIST_LENGTH 12
 #define NUM_HIST_LENGTHS 3
-const UINT32 history_lengths[NUM_HIST_LENGTHS] = {12,8,4};
+const UINT32 history_lengths[NUM_HIST_LENGTHS] = {4,8,12};
 
 /* REG */
 #define MAX_NUM_REGS 4096
